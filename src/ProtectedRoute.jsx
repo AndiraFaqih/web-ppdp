@@ -1,31 +1,9 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { Outlet } from "react-router-dom";
 
+// Login temporarily disabled: allow all routes without authentication.
+// Restore original logic in production if needed.
 const ProtectedRoute = ({ allowedRoles }) => {
-  const location = useLocation();
-  const token = localStorage.getItem("jwtToken");
-
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  try {
-    const decodedToken = jwtDecode(token);
-    const userRole = decodedToken.role;
-
-    if (allowedRoles.includes(userRole)) {
-      return <Outlet />;
-    }
-
-    return userRole === "admin" ? (
-      <Navigate to="/admin/employee" replace />
-    ) : (
-      <Navigate to="/attendance-history" replace />
-    );
-  } catch (error) {
-    console.error("Invalid token:", error);
-    return <Navigate to="/login" replace />;
-  }
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
