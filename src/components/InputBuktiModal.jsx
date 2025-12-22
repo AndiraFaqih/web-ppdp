@@ -90,7 +90,8 @@ export default function InputBuktiModal({
       fileUrl,
       fileName,
       fileSize,
-
+      status: pickedStatus,
+      
       // ✅ simpan status & catatan perpanjangan ke HISTORY (biar kebaca di "Lihat bukti")
       status: pickedStatus,
       perpanjangan:

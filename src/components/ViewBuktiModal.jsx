@@ -9,6 +9,7 @@ export default function ViewBuktiModal({
   onDeleteOne,
   onDeleteAll,
   formatTanggal,
+  onApprovalAction,
 }) {
   const [selectedId, setSelectedId] = useState(null);
 
@@ -229,6 +230,90 @@ export default function ViewBuktiModal({
                     >
                       Download
                     </a>
+                    {/* ✅ APPROVAL BERJENJANG */}
+                    <div className="mt-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Approval Berjenjang
+                          </div>
+
+                          <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                            Status:
+                            <span className="ml-1 font-medium">
+                              {selected?.approval?.state || "PENDING_1"}
+                            </span>
+                          </div>
+
+                          {selected?.approval?.state === "REJECTED" && (
+                            <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+                              Bukti ditolak. Silakan upload ulang bukti terbaru.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Riwayat approval */}
+                      <div className="mt-3 space-y-2">
+                        {(selected?.approval?.history || []).length === 0 ? (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Belum ada aksi approval.
+                          </div>
+                        ) : (
+                          (selected?.approval?.history || []).slice(0, 5).map((h, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-lg bg-gray-50 p-3 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                            >
+                              <div className="font-semibold">
+                                {h.action === "APPROVE" ? "✅ Disetujui" : "❌ Ditolak"}{" "}
+                                <span className="font-normal text-gray-500 dark:text-gray-400">
+                                  ({h.byName || h.byEmail || "Approver"} • {fmt(h.at)})
+                                </span>
+                              </div>
+                              {h.note && <div className="mt-1 whitespace-pre-wrap">Catatan: {h.note}</div>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Tombol approve/reject (sementara tampilkan untuk semua; kalau mau role-based tinggal guard) */}
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <Button
+                          color="success"
+                          onClick={() =>
+                            onApprovalAction?.(nomorLhp, selected?.id, "APPROVE", {
+                              byName: "Atasan",
+                              byEmail: "",
+                            })
+                          }
+                          disabled={!selected?.id || selected?.approval?.state === "APPROVED"}
+                        >
+                          Approve
+                        </Button>
+
+                        <Button
+                          color="failure"
+                          onClick={() => {
+                            const note = prompt("Catatan penolakan (wajib):");
+                            if (!note) return;
+                            onApprovalAction?.(nomorLhp, selected?.id, "REJECT", {
+                              note,
+                              byName: "Atasan",
+                              byEmail: "",
+                            });
+                          }}
+                          disabled={!selected?.id || selected?.approval?.state === "APPROVED"}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        * Jika ditolak, PIC upload bukti ulang → otomatis akan jadi versi terbaru di riwayat.
+                      </p>
+                    </div>
+
                   </div>
                 </div>
               </div>

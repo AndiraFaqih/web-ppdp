@@ -9,7 +9,7 @@ const pct = (n, total) => {
   return `${Math.round((n / total) * 100)}%`;
 };
 
-// ✅ TAMBAHAN MINIMAL: plugin untuk gambar persen di pie
+// ✅ plugin untuk gambar persen di pie
 const piePercentLabelsPlugin = {
   id: "piePercentLabels",
   afterDatasetsDraw(chart) {
@@ -26,7 +26,6 @@ const piePercentLabelsPlugin = {
 
     ctx.save();
     ctx.font = "700 12px sans-serif";
-    ctx.fillStyle = "#ffffff"; // teks putih (ubah kalau perlu)
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -36,6 +35,12 @@ const piePercentLabelsPlugin = {
 
       const percent = Math.round((v / total) * 100);
       if (percent <= 0) return;
+
+      const bg = Array.isArray(dataset.backgroundColor)
+        ? String(dataset.backgroundColor[i] || "")
+        : "";
+      // teks hitam untuk slice abu-abu, putih untuk lainnya
+      ctx.fillStyle = bg.toLowerCase().includes("c9c9c9") ? "#111827" : "#ffffff";
 
       const p = arc.getCenterPoint ? arc.getCenterPoint() : arc.tooltipPosition();
       ctx.fillText(`${percent}%`, p.x, p.y);
@@ -52,28 +57,51 @@ export default function SummaryDashboard({ rows = [] }) {
   const stats = useMemo(() => {
     const total = rows.length;
 
-    const sesuai = rows.filter((r) => r?.statusLabel === "Sesuai").length;
-    const belumSesuai = rows.filter((r) => r?.statusLabel === "Belum Sesuai").length;
-    const belumTindak = rows.filter(
-      (r) => (r?.statusLabel || DEFAULT_STATUS) === DEFAULT_STATUS
-    ).length;
+    const norm = (r) =>
+      String(r?.statusLabel || DEFAULT_STATUS).trim().toLowerCase();
+
+    // ✅ "belum sesuai" harus tetap kebaca walau ditolak / dll (pokoknya ada kata itu)
+    const isBelumSesuai = (r) => norm(r).includes("belum sesuai");
+
+    // ✅ belum tindak lanjut = default status
+    const isBelumTindak = (r) => norm(r) === DEFAULT_STATUS.toLowerCase();
+
+    // ✅ sesuai apapun (pending/approved) = statusLabel diawali "sesuai"
+    const isSesuaiAny = (r) => norm(r).startsWith("sesuai");
+
+    // ✅ pending approval
+    const isPending = (r) =>
+      isSesuaiAny(r) && norm(r).includes("pending");
+
+    // ✅ approved (support: "Sesuai" atau mengandung "approved")
+    const isApproved = (r) => {
+      const s = norm(r);
+      return s === "sesuai" || (isSesuaiAny(r) && s.includes("approved"));
+    };
+
+    const belumTindak = rows.filter(isBelumTindak).length;
+    const belumSesuai = rows.filter(isBelumSesuai).length;
+
+    // pending & approved harus eksklusif, dan harus dari "sesuai..."
+    const approved = rows.filter(isApproved).length;
+    const pending = rows.filter((r) => isPending(r) && !isApproved(r)).length;
 
     return {
       total,
-      sesuai,
-      belumSesuai,
       belumTindak,
-      pSesuai: pct(sesuai, total),
-      pBelumSesuai: pct(belumSesuai, total),
+      belumSesuai,
+      pending,
+      approved,
       pBelumTindak: pct(belumTindak, total),
+      pBelumSesuai: pct(belumSesuai, total),
+      pPending: pct(pending, total),
+      pApproved: pct(approved, total),
     };
   }, [rows]);
 
-  // pie chart
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    // destroy chart lama biar gak numpuk
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
@@ -82,11 +110,17 @@ export default function SummaryDashboard({ rows = [] }) {
     chartRef.current = new Chart(canvasRef.current, {
       type: "pie",
       data: {
-        labels: ["Belum Tindak Lanjut", "Belum Sesuai", "Sesuai"],
+        labels: [
+          "Belum Tindak Lanjut",
+          "Belum Sesuai",
+          "Pending Approval",
+          "Approved",
+        ],
         datasets: [
           {
-            data: [stats.belumTindak, stats.belumSesuai, stats.sesuai],
-            backgroundColor: ["#c9c9c9ff", "#EF4444", "#3ba23dff"],
+            data: [stats.belumTindak, stats.belumSesuai, stats.pending, stats.approved],
+            // bebas warna, aku tetap pakai yang mirip sebelumnya
+            backgroundColor: ["#c9c9c9ff", "#EF4444", "#F59E0B", "#3ba23dff"],
             borderWidth: 1,
           },
         ],
@@ -96,10 +130,9 @@ export default function SummaryDashboard({ rows = [] }) {
         maintainAspectRatio: false,
         plugins: {
           legend: { position: "bottom" },
-          tooltip: { enabled: false }, // ✅ opsional: tooltip dimatikan
+          tooltip: { enabled: false },
         },
       },
-      // ✅ TAMBAHAN MINIMAL: pasang plugin
       plugins: [piePercentLabelsPlugin],
     });
 
@@ -107,7 +140,7 @@ export default function SummaryDashboard({ rows = [] }) {
       if (chartRef.current) chartRef.current.destroy();
       chartRef.current = null;
     };
-  }, [stats.belumTindak, stats.belumSesuai, stats.sesuai]);
+  }, [stats.belumTindak, stats.belumSesuai, stats.pending, stats.approved]);
 
   return (
     <div className="mt-4">
@@ -125,14 +158,29 @@ export default function SummaryDashboard({ rows = [] }) {
 
           <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="text-sm font-semibold text-gray-900 dark:text-white">
-              Rekomendasi Telah Sesuai
+              Approved
             </div>
             <div className="mt-2 flex items-end justify-between">
               <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.sesuai}
+                {stats.approved}
               </div>
               <div className="text-sm font-semibold text-gray-600 dark:text-gray-300">
-                {stats.pSesuai}
+                {stats.pApproved}
+              </div>
+            </div>
+          </div>
+
+          {/* ✅ tambahan card */}
+          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              Pending Approval
+            </div>
+            <div className="mt-2 flex items-end justify-between">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {stats.pending}
+              </div>
+              <div className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                {stats.pPending}
               </div>
             </div>
           </div>

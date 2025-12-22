@@ -54,7 +54,7 @@ export default function HeaderBar({
           <div className="mb-4">
             <Breadcrumb className="mb-4"></Breadcrumb>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-              All users
+              Monitoring LHP
             </h1>
 
             {/* ✅ TAMBAHAN MINIMAL: summary dashboard */}

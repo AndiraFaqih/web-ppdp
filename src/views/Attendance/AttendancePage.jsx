@@ -1,3 +1,4 @@
+// src/views/Attendance/AttendancePage.jsx
 import NavbarSidebarLayout from "../Admin/layouts/NavbarSidebar";
 import { useEffect, useMemo, useState } from "react";
 
@@ -12,7 +13,7 @@ import { rows as initialRows } from "../../components/rows";
 import { formatTanggal } from "../../components/date";
 
 // =======================
-// ✅ TAMBAHAN: helper tanggal untuk notifikasi H-3
+// ✅ helper tanggal untuk notifikasi H-3
 // =======================
 const parseTanggal = (s) => {
   if (!s) return null;
@@ -45,11 +46,7 @@ const parseTanggal = (s) => {
       desember: 11,
     };
 
-    if (
-      !Number.isNaN(day) &&
-      map[monthName] !== undefined &&
-      !Number.isNaN(year)
-    ) {
+    if (!Number.isNaN(day) && map[monthName] !== undefined && !Number.isNaN(year)) {
       const d = new Date(year, map[monthName], day);
       return isNaN(d) ? null : d;
     }
@@ -87,7 +84,7 @@ export default function AttendancePage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterPic, setFilterPic] = useState("ALL");
 
-  // ✅ TAMBAHAN MINIMAL: reset + disabled state
+  // ✅ reset + disabled state
   const resetFilters = () => {
     setFilterNomorLhp("");
     setFilterStatus("ALL");
@@ -95,15 +92,13 @@ export default function AttendancePage() {
   };
 
   const resetDisabled =
-    !String(filterNomorLhp || "").trim() &&
-    filterStatus === "ALL" &&
-    filterPic === "ALL";
+    !String(filterNomorLhp || "").trim() && filterStatus === "ALL" && filterPic === "ALL";
 
-  // ✅ rows yang ditampilkan = hasil filter
+  // ✅ rows yang ditampilkan = hasil filter + SORT nomor LHP (besar → kecil)
   const filteredRows = useMemo(() => {
     const q = String(filterNomorLhp || "").trim().toLowerCase();
 
-    return (rowsData || []).filter((r) => {
+    const list = (rowsData || []).filter((r) => {
       const status = String(r?.statusLabel || "");
       const pic = String(r?.picNama || "");
 
@@ -127,26 +122,105 @@ export default function AttendancePage() {
 
       return matchKeyword && matchStatus && matchPic;
     });
+
+    // ✅ SORT nomor LHP: besar → kecil (yang kecil di bawah)
+    list.sort((a, b) => {
+      const an = String(a?.nomorLhp || "");
+      const bn = String(b?.nomorLhp || "");
+
+      // kosong taruh paling bawah
+      if (!an && !bn) return 0;
+      if (!an) return 1;
+      if (!bn) return -1;
+
+      const c = an.localeCompare(bn, "id", { numeric: true, sensitivity: "base" });
+      if (c !== 0) return -c; // ✅ descending
+
+      // tie-breaker biar stabil
+      return String(a?.id || "").localeCompare(String(b?.id || ""));
+    });
+
+    return list;
   }, [rowsData, filterNomorLhp, filterStatus, filterPic]);
 
   const [isInputBuktiOpen, setIsInputBuktiOpen] = useState(false);
   const [isViewBuktiOpen, setIsViewBuktiOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
-  // ✅ value per nomorLhp sekarang ARRAY history
+  // ✅ value per nomorLhp sekarang ARRAY history (newest di index 0)
   const [buktiByLhp, setBuktiByLhp] = useState({});
 
-  // ✅ reset status semua row dalam 1 nomorLhp
-  const resetStatusByNomorLhp = (nomorLhp) => {
+  // ✅ dot mengikuti variasi status baru
+  const dotByStatus = (status) => {
+    const s = String(status || "").trim().toLowerCase();
+    if (s.startsWith("sesuai")) return "bg-green-500";
+    if (s.includes("belum sesuai")) return "bg-red-500";
+    return DEFAULT_DOT;
+  };
+
+  // ✅ status dari bukti terbaru:
+  // - belum ada bukti => "Belum Tindak Lanjut"
+  // - kalau input bukti status "Belum Sesuai" => tetap "Belum Sesuai" (meskipun pending/approved)
+  // - kalau input bukti "Sesuai" => "Sesuai - Pending Approval_1/_2" sampai APPROVED
+  const statusFromLatestBukti = (list) => {
+    const arr = Array.isArray(list) ? list : [];
+    if (arr.length === 0) return DEFAULT_STATUS;
+
+    const latest = arr[0];
+
+    // status pilihan saat input bukti (dukungan beberapa nama field biar aman)
+    const picked = (
+      latest?.status ||
+      latest?.pickedStatus ||
+      latest?.statusLabel ||
+      latest?.statusTindakLanjut ||
+      ""
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    const appr = String(latest?.approval?.state || "").toUpperCase();
+
+    // ✅ PRIORITAS: kalau user pilih "Belum Sesuai" tetap "Belum Sesuai"
+    if (picked === "belum sesuai") {
+      return appr === "REJECTED" ? "Belum Sesuai - Ditolak" : "Belum Sesuai";
+    }
+
+    // kalau approval ditolak, tetap masuk kategori "Belum Sesuai" biar kena alert
+    if (appr === "REJECTED") return "Belum Sesuai - Ditolak";
+
+    if (appr === "APPROVED") return "Sesuai";
+    if (appr === "PENDING_2") return "Sesuai - Pending Approval_2";
+    // default pending 1 (atau state kosong)
+    return "Sesuai - Pending Approval_1";
+  };
+
+  // ✅ set status semua row dalam 1 nomorLhp
+  const resetStatusByNomorLhp = (nomorLhp, status = DEFAULT_STATUS) => {
     if (!nomorLhp) return;
     setRowsData((prev) =>
       prev.map((r) =>
-        r.nomorLhp === nomorLhp
-          ? { ...r, statusLabel: DEFAULT_STATUS, statusDot: DEFAULT_DOT }
-          : r
+        r.nomorLhp === nomorLhp ? { ...r, statusLabel: status, statusDot: dotByStatus(status) } : r
       )
     );
   };
+
+  // ✅ AUTO-SYNC: setiap bukti berubah/approval berubah, status row mengikuti bukti latest
+  useEffect(() => {
+    setRowsData((prev) =>
+      prev.map((r) => {
+        const derived = statusFromLatestBukti(buktiByLhp?.[r.nomorLhp]);
+        const nextDot = dotByStatus(derived);
+
+        if ((r.statusLabel || DEFAULT_STATUS) === derived && (r.statusDot || DEFAULT_DOT) === nextDot) {
+          return r;
+        }
+        return { ...r, statusLabel: derived, statusDot: nextDot };
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buktiByLhp]);
 
   // =======================
   // ✅ generate notifikasi H-3 dari rowsData
@@ -155,34 +229,33 @@ export default function AttendancePage() {
     const today = new Date();
 
     const notifs = rowsData
-    .map((r) => {
-      const due = parseTanggal(r.batasWaktu);
-      if (!due) return null;
+      .map((r) => {
+        const due = parseTanggal(r.batasWaktu);
+        if (!due) return null;
 
-      // ✅ TAMBAHAN: kalau status sudah "Sesuai" → jangan muncul notif
-      if ((r?.statusLabel || "").trim().toLowerCase() === "sesuai") return null;
+        // ✅ kalau status sudah "Sesuai" (termasuk pending approval) → jangan muncul notif
+        const s = String(r?.statusLabel || "").trim().toLowerCase();
+        if (s.startsWith("sesuai")) return null;
 
-      const d = diffDays(due, today);
-      if (d < 0 || d > 3) return null;
+        const d = diffDays(due, today);
+        if (d < 0 || d > 3) return null; // ✅ H-3
 
-      return {
-        key: r.id,
-        rowId: r.id,
-        nomorLhp: r.nomorLhp,
-        batasWaktu: r.batasWaktu,
-        rekomPreview: r.rekomendasi
-          ? r.rekomendasi.length > 80
-            ? r.rekomendasi.slice(0, 80) + "..."
-            : r.rekomendasi
-          : "",
-      };
-    })
+        return {
+          key: r.id,
+          rowId: r.id,
+          nomorLhp: r.nomorLhp,
+          batasWaktu: r.batasWaktu,
+          rekomPreview: r.rekomendasi
+            ? r.rekomendasi.length > 80
+              ? r.rekomendasi.slice(0, 80) + "..."
+              : r.rekomendasi
+            : "",
+        };
+      })
       .filter(Boolean);
 
     localStorage.setItem("lhp_notifications", JSON.stringify(notifs));
-    window.dispatchEvent(
-      new CustomEvent("lhpNotificationsUpdated", { detail: notifs })
-    );
+    window.dispatchEvent(new CustomEvent("lhpNotificationsUpdated", { detail: notifs }));
   }, [rowsData]);
 
   // =======================
@@ -205,12 +278,9 @@ export default function AttendancePage() {
   const scrollToRow = ({ rowId }) => {
     if (!rowId) return;
 
-    // coba langsung
     if (highlightAndScroll(rowId)) return;
 
-    // kalau tidak ketemu (misal sedang ter-filter), reset filter dulu lalu coba lagi
-    resetFilters(); // ✅ lebih pendek (tadinya set 3 state)
-
+    resetFilters();
     setTimeout(() => {
       highlightAndScroll(rowId);
     }, 300);
@@ -262,13 +332,8 @@ export default function AttendancePage() {
           temuan: temuanText,
           rekomendasi: (r.rekomendasi || "").trim(),
           batasWaktu: r.batasWaktu || "",
-          statusLabel: r.status || DEFAULT_STATUS,
-          statusDot:
-            r.status === "Sesuai"
-              ? "bg-green-500"
-              : r.status === "Belum Sesuai"
-              ? "bg-red-500"
-              : DEFAULT_DOT,
+          statusLabel: DEFAULT_STATUS,
+          statusDot: DEFAULT_DOT,
           picNama,
           picEmail,
         });
@@ -282,37 +347,12 @@ export default function AttendancePage() {
   // UPDATE DATA (tetap)
   // =======================
   const handleAddUpdateRow = (newRow) => {
-    setRowsData((prev) => [
-      { ...newRow, id: newRow.id || uid(prev.length) },
-      ...prev,
-    ]);
+    setRowsData((prev) => [{ ...newRow, id: newRow.id || uid(prev.length) }, ...prev]);
   };
 
   const handleUpdateRowDate = (rowId, newDate) => {
     if (!rowId) return;
-    setRowsData((prev) =>
-      prev.map((r) => (r.id === rowId ? { ...r, batasWaktu: newDate } : r))
-    );
-  };
-
-  // =======================
-  // ✅ update STATUS
-  // =======================
-  const handleUpdateRowStatus = (rowId, status) => {
-    if (!rowId) return;
-
-    const nextDot =
-      status === "Sesuai"
-        ? "bg-green-500"
-        : status === "Belum Sesuai"
-        ? "bg-red-500"
-        : DEFAULT_DOT;
-
-    setRowsData((prev) =>
-      prev.map((r) =>
-        r.id === rowId ? { ...r, statusLabel: status, statusDot: nextDot } : r
-      )
-    );
+    setRowsData((prev) => prev.map((r) => (r.id === rowId ? { ...r, batasWaktu: newDate } : r)));
   };
 
   // =======================
@@ -338,20 +378,65 @@ export default function AttendancePage() {
       id: uid("bukti"),
       ...payload,
       createdAt: new Date().toISOString(),
+
+      // ✅ simpan juga status pilihan saat input (biar bisa dipakai statusFromLatestBukti)
+      status:
+        payload?.status || payload?.pickedStatus || payload?.statusLabel || payload?.statusTindakLanjut || "Sesuai",
+
+      approval: {
+        state: "PENDING_1", // PENDING_1 | PENDING_2 | APPROVED | REJECTED
+        history: [],
+      },
     };
 
     setBuktiByLhp((prev) => {
       const prevList = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
-      return {
-        ...prev,
-        [nomorLhp]: [entry, ...prevList],
-      };
+      return { ...prev, [nomorLhp]: [entry, ...prevList] };
     });
 
     setIsInputBuktiOpen(false);
   };
 
-  // ✅ hapus 1 item bukti (history)
+  // ✅ approve/reject bukti tertentu
+  const handleApprovalAction = (nomorLhp, buktiId, action, meta = {}) => {
+    if (!nomorLhp || !buktiId) return;
+
+    setBuktiByLhp((prev) => {
+      const list = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
+
+      const nextList = list.map((b) => {
+        if (b.id !== buktiId) return b;
+
+        const approval = b.approval || { state: "PENDING_1", history: [] };
+        const now = new Date().toISOString();
+
+        const nextHistory = [
+          {
+            action, // APPROVE / REJECT
+            at: now,
+            note: meta.note || "",
+            byName: meta.byName || "",
+            byEmail: meta.byEmail || "",
+            fromState: approval.state,
+          },
+          ...(approval.history || []),
+        ];
+
+        let nextState = approval.state;
+        if (action === "APPROVE") {
+          nextState = approval.state === "PENDING_1" ? "PENDING_2" : "APPROVED";
+        } else if (action === "REJECT") {
+          nextState = "REJECTED";
+        }
+
+        return { ...b, approval: { ...approval, state: nextState, history: nextHistory } };
+      });
+
+      return { ...prev, [nomorLhp]: nextList };
+    });
+  };
+
+  // ✅ hapus 1 item bukti
   const handleDeleteBuktiOne = (nomorLhp, buktiId) => {
     if (!nomorLhp || !buktiId) return;
 
@@ -370,10 +455,10 @@ export default function AttendancePage() {
 
       if (nextList.length === 0) {
         delete next[nomorLhp];
-        // ✅ kalau bukti habis → reset status default
-        resetStatusByNomorLhp(nomorLhp);
+        resetStatusByNomorLhp(nomorLhp, DEFAULT_STATUS);
       } else {
         next[nomorLhp] = nextList;
+        resetStatusByNomorLhp(nomorLhp, statusFromLatestBukti(nextList));
       }
 
       return next;
@@ -400,9 +485,7 @@ export default function AttendancePage() {
       return next;
     });
 
-    // ✅ delete all → reset status default
-    resetStatusByNomorLhp(nomorLhp);
-
+    resetStatusByNomorLhp(nomorLhp, DEFAULT_STATUS);
     setIsViewBuktiOpen(false);
   };
 
@@ -424,9 +507,7 @@ export default function AttendancePage() {
   }, []);
 
   // ✅ ambil latest bukti (untuk prefill modal)
-  const selectedBuktiList = selectedRow
-    ? buktiByLhp[selectedRow.nomorLhp] || []
-    : [];
+  const selectedBuktiList = selectedRow ? buktiByLhp[selectedRow.nomorLhp] || [] : [];
   const latestBukti = selectedBuktiList?.[0] || null;
 
   return (
@@ -443,7 +524,7 @@ export default function AttendancePage() {
         onChangeFilterStatus={setFilterStatus}
         filterPic={filterPic}
         onChangeFilterPic={setFilterPic}
-        // ✅ TAMBAHAN MINIMAL: reset + disabled
+        // ✅ reset + disabled
         onResetFilters={resetFilters}
         resetDisabled={resetDisabled}
       />
@@ -472,7 +553,7 @@ export default function AttendancePage() {
         row={selectedRow}
         existing={latestBukti}
         onSubmit={handleSubmitBukti}
-        onUpdateStatus={handleUpdateRowStatus}
+        // ✅ status otomatis dari bukti+approval (tidak pakai onUpdateStatus)
       />
 
       <ViewBuktiModal
@@ -483,6 +564,7 @@ export default function AttendancePage() {
         onDeleteOne={handleDeleteBuktiOne}
         onDeleteAll={handleDeleteBuktiAll}
         formatTanggal={formatTanggal}
+        onApprovalAction={handleApprovalAction}
       />
     </NavbarSidebarLayout>
   );

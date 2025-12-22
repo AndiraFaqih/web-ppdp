@@ -12,7 +12,7 @@ export default function NotificationDropdown({
     <div className="absolute right-0 top-12 z-50 w-96 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
         <p className="text-sm font-semibold text-gray-900 dark:text-white">
-          Notifikasi (H-3 Batas Waktu)
+          Notifikasi
         </p>
         <button
           type="button"
