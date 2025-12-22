@@ -1,78 +1,126 @@
 import { Table } from "flowbite-react";
-import BuktiActionButton from "./BuktiActionButton";
-import ViewBuktiButton from "./ViewBuktiButton";
 
 export default function LhpTable({
-  rows,
-  buktiByLhp,
-  formatTanggal,
+  rows = [],
+  buktiByLhp = {},
+  formatTanggal = (x) => x,
   onOpenInputBukti,
   onOpenViewBukti,
 }) {
   return (
     <Table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
       <Table.Head className="bg-gray-100 dark:bg-gray-700">
-        <Table.HeadCell>Nomor LHP</Table.HeadCell>
-        <Table.HeadCell>Temuan</Table.HeadCell>
-        <Table.HeadCell>Rekomendasi</Table.HeadCell>
-        <Table.HeadCell>Batas Waktu</Table.HeadCell>
-        <Table.HeadCell>Status</Table.HeadCell>
+        <Table.HeadCell>NOMOR LHP</Table.HeadCell>
+        <Table.HeadCell>TEMUAN</Table.HeadCell>
+        <Table.HeadCell>REKOMENDASI</Table.HeadCell>
+        <Table.HeadCell>BATAS WAKTU</Table.HeadCell>
+        <Table.HeadCell>STATUS</Table.HeadCell>
         <Table.HeadCell>PIC</Table.HeadCell>
       </Table.Head>
 
       <Table.Body className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-        {rows.map((row) => {
-          const bukti = buktiByLhp[row.nomorLhp];
+        {rows.length === 0 ? (
+          <Table.Row>
+            <Table.Cell
+              colSpan={6}
+              className="p-6 text-center text-sm text-gray-500 dark:text-gray-400"
+            >
+              Belum ada data.
+            </Table.Cell>
+          </Table.Row>
+        ) : (
+          rows.map((row) => {
+            // ✅ sekarang bukti per LHP adalah ARRAY history
+            const buktiList = Array.isArray(buktiByLhp?.[row.nomorLhp])
+              ? buktiByLhp[row.nomorLhp]
+              : [];
 
-          return (
-            <Table.Row key={row.nomorLhp} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Table.Cell className="mr-12 flex items-center space-x-6 whitespace-nowrap p-4 lg:mr-0">
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+            const hasBukti = buktiList.length > 0;
+            const latestBukti = hasBukti ? buktiList[0] : null;
+
+            const dot = row.statusDot || "bg-green-400";
+            const status = row.statusLabel || "Belum Tindak Lanjut";
+
+            return (
+              <Table.Row
+                key={row.id}
+                id={`row-${row.id}`} // ✅ penting untuk scroll dari notifikasi
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {/* NOMOR LHP */}
+                <Table.Cell className="p-4 align-top whitespace-nowrap">
                   <div className="text-base font-semibold text-gray-900 dark:text-white">
                     {row.nomorLhp}
                   </div>
-                </div>
-              </Table.Cell>
+                </Table.Cell>
 
-              <Table.Cell className="p-4 text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
-                {row.temuan}
-              </Table.Cell>
+                {/* TEMUAN */}
+                <Table.Cell className="p-4 align-top text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
+                  {row.temuan}
+                </Table.Cell>
 
-              <Table.Cell className="p-4 text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
-                <BuktiActionButton
-                  text={row.rekomendasi}
-                  onClick={() => onOpenInputBukti(row)}
-                />
+                {/* REKOMENDASI */}
+                <Table.Cell className="p-4 align-top text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
+                  <button
+                    type="button"
+                    className="text-left text-primary-700 hover:underline dark:text-primary-300"
+                    onClick={() => onOpenInputBukti?.(row)}
+                    title="Klik untuk input bukti"
+                  >
+                    {row.rekomendasi}
+                  </button>
 
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Bukti: {bukti ? `Sudah ada • ${formatTanggal(bukti.uploadedAt)}` : "Belum ada"}
-                  </span>
+                  {/* indikator bukti */}
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Bukti: {hasBukti ? `Sudah ada (${buktiList.length})` : "Belum ada"}
+                    {hasBukti && latestBukti?.tanggalUpload ? (
+                      <>
+                        {" "}
+                        • Terakhir:{" "}
+                        <span className="font-medium">
+                          {formatTanggal(latestBukti.tanggalUpload)}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
 
-                  {bukti && <ViewBuktiButton onClick={() => onOpenViewBukti(row)} />}
-                </div>
-              </Table.Cell>
+                  {hasBukti && (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="text-sm text-gray-700 hover:underline dark:text-gray-200"
+                        onClick={() => onOpenViewBukti?.(row)}
+                      >
+                        Lihat bukti
+                      </button>
+                    </div>
+                  )}
+                </Table.Cell>
 
-              <Table.Cell className="p-4 text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
-                {row.batasWaktu}
-              </Table.Cell>
+                {/* BATAS WAKTU */}
+                <Table.Cell className="p-4 align-top text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
+                  {formatTanggal(row.batasWaktu)}
+                </Table.Cell>
 
-              <Table.Cell className="whitespace-nowrap p-4 text-base font-normal text-gray-900 dark:text-white break-words">
-                <div className="flex items-center">
-                  <div className={`mr-2 h-2.5 w-2.5 rounded-full ${row.statusDot}`}></div>
-                  {row.statusLabel}
-                </div>
-              </Table.Cell>
+                {/* STATUS */}
+                <Table.Cell className="p-4 align-top whitespace-nowrap text-base font-normal text-gray-900 dark:text-white">
+                  <div className="flex items-center">
+                    <div className={`mr-2 h-2.5 w-2.5 rounded-full ${dot}`} />
+                    {status}
+                  </div>
+                </Table.Cell>
 
-              <Table.Cell className="p-4 text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
-                {row.picNama}
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {row.picEmail}
-                </div>
-              </Table.Cell>
-            </Table.Row>
-          );
-        })}
+                {/* PIC */}
+                <Table.Cell className="p-4 align-top text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
+                  {row.picNama}
+                  <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                    {row.picEmail}
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            );
+          })
+        )}
       </Table.Body>
     </Table>
   );
