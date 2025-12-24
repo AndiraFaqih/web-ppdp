@@ -15,6 +15,7 @@ export default function HeaderBar({
   onAddLhpPayload,
   onAddUpdateRow,
   onUpdateRowDate,
+  onRefresh,
 
   // ✅ filter props
   filterNomorLhp,
@@ -23,6 +24,8 @@ export default function HeaderBar({
   onChangeFilterStatus,
   filterPic,
   onChangeFilterPic,
+  filterPerusahaan,
+  onChangeFilterPerusahaan,
 
   // ✅ tambah
   onResetFilters,
@@ -47,15 +50,21 @@ export default function HeaderBar({
     return ["ALL", ...Array.from(set)];
   }, [rows]);
 
+  const perusahaanOptions = useMemo(() => {
+    const set = new Set();
+    (rows || []).forEach((r) => r?.perusahaanNama && set.add(r.perusahaanNama));
+    return ["ALL", ...Array.from(set)];
+  }, [rows]);
+
   return (
     <>
       <div className="block items-center justify-between border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:flex">
         <div className="mb-1 w-full">
           <div className="mb-4">
             <Breadcrumb className="mb-4"></Breadcrumb>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
+            {/* <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
               Monitoring LHP
-            </h1>
+            </h1> */}
 
             {/* ✅ TAMBAHAN MINIMAL: summary dashboard */}
             <SummaryDashboard rows={summaryRows || rows} />
@@ -105,6 +114,19 @@ export default function HeaderBar({
                 </Select>
               </div>
 
+              <div className="min-w-[180px]">
+                <Select
+                  value={filterPerusahaan || "ALL"}
+                  onChange={(e) => onChangeFilterPerusahaan?.(e.target.value)}
+                >
+                  {perusahaanOptions.map((prs) => (
+                    <option key={prs} value={prs}>
+                      {prs === "ALL" ? "Semua Perusahaan" : prs}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
               {/* ✅ tombol reset terpisah */}
               <ResetFiltersButton
                 onClick={onResetFilters}
@@ -133,6 +155,7 @@ export default function HeaderBar({
         rows={rows}
         onAddRow={onAddUpdateRow}
         onUpdateRowDate={onUpdateRowDate}
+        onRefresh={onRefresh}
       />
     </>
   );

@@ -29,39 +29,6 @@ const DashboardSidebar = () => {
             {role === "admin" && (
               <>
                 <Sidebar.Item
-                  onClick={() => handleNavigation("/admin/employee")}
-                  icon={MdOutlineManageAccounts}
-                  className={
-                    "/admin/employee" === currPage
-                      ? "my-3 cursor-pointer bg-gray-100 dark:bg-gray-700"
-                      : "my-3 cursor-pointer"
-                  }
-                >
-                  Employee Management
-                </Sidebar.Item>
-                <Sidebar.Item
-                  onClick={() => handleNavigation("/admin/employee-attendance")}
-                  icon={FaList}
-                  className={
-                    "/admin/employee-attendance" === currPage
-                      ? "my-3 cursor-pointer bg-gray-100 dark:bg-gray-700"
-                      : "my-3 cursor-pointer"
-                  }
-                >
-                  Employee Attendances
-                </Sidebar.Item>
-                <Sidebar.Item
-                  onClick={() => handleNavigation("/attendance-history")}
-                  icon={FaHistory}
-                  className={
-                    "/attendance-history" === currPage
-                      ? "my-3 cursor-pointer bg-gray-100 dark:bg-gray-700"
-                      : "my-3 cursor-pointer"
-                  }
-                >
-                  My Attendances History
-                </Sidebar.Item>
-                <Sidebar.Item
                   onClick={() => handleNavigation("/absence")}
                   icon={FaClipboardList}
                   className={
@@ -70,7 +37,7 @@ const DashboardSidebar = () => {
                       : "my-3 cursor-pointer"
                   }
                 >
-                  Absence
+                  Halaman Muka
                 </Sidebar.Item>
               </>
             )}

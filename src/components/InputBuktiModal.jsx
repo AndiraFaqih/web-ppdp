@@ -87,12 +87,10 @@ export default function InputBuktiModal({
     const payload = {
       tanggalUpload,
       keterangan,
+      file, // ✅ Pass actual File object for backend upload
       fileUrl,
       fileName,
       fileSize,
-      status: pickedStatus,
-      
-      // ✅ simpan status & catatan perpanjangan ke HISTORY (biar kebaca di "Lihat bukti")
       status: pickedStatus,
       perpanjangan:
         pickedStatus === "Belum Sesuai" && isPerpanjang
@@ -104,13 +102,8 @@ export default function InputBuktiModal({
           : null,
     };
 
-    // 1) simpan bukti dulu
+    // 1) simpan bukti dulu (including file upload to backend)
     onSubmit?.(payload);
-
-    // 2) ✅ baru update status (aturan: tidak boleh sebelum upload)
-    if (row?.id && isBuktiReady) {
-      onUpdateStatus?.(row.id, pickedStatus);
-    }
   };
 
   return (

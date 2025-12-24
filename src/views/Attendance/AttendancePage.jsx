@@ -9,8 +9,10 @@ import LhpTable from "../../components/LhpTable";
 import InputBuktiModal from "../../components/InputBuktiModal";
 import ViewBuktiModal from "../../components/ViewBuktiModal";
 
-import { rows as initialRows } from "../../components/rows";
 import { formatTanggal } from "../../components/date";
+import { laporanService } from "../../service/laporan-service";
+import { rekomendasiService } from "../../service/rekomendasi-service";
+import baseUrl from "../../service/base-url";
 
 // =======================
 // ✅ helper tanggal untuk notifikasi H-3
@@ -22,6 +24,11 @@ const parseTanggal = (s) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const d = new Date(`${s}T00:00:00`);
     return isNaN(d) ? null : d;
+  }
+
+  // format Date object
+  if (s instanceof Date) {
+    return isNaN(s.getTime()) ? null : s;
   }
 
   // format "30 Juni 2025"
@@ -69,13 +76,132 @@ const uid = (i) =>
 const DEFAULT_STATUS = "Belum Tindak Lanjut";
 const DEFAULT_DOT = "bg-green-400";
 
+// Helper untuk mapping status backend ke frontend
+const mapStatusToFrontend = (backendStatus) => {
+  if (!backendStatus) return DEFAULT_STATUS;
+  const status = backendStatus.toString().trim();
+  
+  const statusMap = {
+    "BELUM TINDAK LANJUT": "Belum Tindak Lanjut",
+    "SESUAI PENDING APPROVAL 1": "Sesuai - Pending Approval_1",
+    "SESUAI PENDING APPROVAL 2": "Sesuai - Pending Approval_2",
+    "SESUAI": "Sesuai",
+    "BELUM SESUAI": "Belum Sesuai",
+    "BELUM SESUAI - DITOLAK": "Belum Sesuai - Ditolak",
+  };
+
+  return statusMap[status] || status;
+};
+
+// Transform backend laporan data to frontend rows
+const transformLaporanToRows = (laporanList) => {
+  const rows = [];
+
+  laporanList.forEach((laporan) => {
+    const nomorLHP = laporan.nomorLHP || laporan.nomorLhp;
+    const pic = laporan.PIC || "";
+    const perusahaan = laporan.perusahaan || laporan.perusahaanNama || "";
+    const temuanList = laporan.temuan || [];
+    const rekomendasiList = laporan.rekomendasi || [];
+
+    // Expand: setiap kombinasi temuan x rekomendasi menjadi 1 row
+    // Status sekarang per rekomendasi, bukan per laporan
+    if (temuanList.length === 0 || rekomendasiList.length === 0) {
+      // Jika tidak ada temuan atau rekomendasi, buat row kosong
+      rows.push({
+        id: uid(rows.length),
+        nomorLhp: nomorLHP,
+        temuan: "",
+        rekomendasi: "",
+        batasWaktu: laporan.batasWaktu ? new Date(laporan.batasWaktu).toISOString().split('T')[0] : "",
+        statusLabel: DEFAULT_STATUS,
+        statusDot: dotByStatus(DEFAULT_STATUS),
+        picNama: pic,
+        picEmail: "",
+        perusahaanNama: perusahaan,
+        laporanId: laporan.id,
+        temuanId: null,
+        rekomendasiId: null,
+      });
+    } else {
+      // Create a map of temuanId -> temuan for quick lookup
+      const temuanMap = new Map(temuanList.map((t) => [t.id, t]));
+      
+      // Each rekomendasi now has temuanId, use that for direct pairing
+      rekomendasiList.forEach((rek, idx) => {
+        // Find the temuan this rekomendasi belongs to via temuanId
+        const linkedTemuan = rek.temuanId ? temuanMap.get(rek.temuanId) : null;
+        
+        // Fallback: if no temuanId, try matching via [TIDX:X] prefix (for old data)
+        let temuanDeskripsi = linkedTemuan?.deskripsi || "";
+        let temuanId = linkedTemuan?.id || null;
+        
+        if (!linkedTemuan) {
+          // Old data fallback using [TIDX:X] prefix matching
+          const rekIsi = rek.isi || "";
+          const rekMatch = rekIsi.match(/^\[TIDX:(\d+)\]/);
+          
+          if (rekMatch) {
+            const rekTemuanIdx = parseInt(rekMatch[1], 10);
+            // Find temuan with matching index
+            for (const [tId, t] of temuanMap) {
+              const tMatch = t.deskripsi?.match(/^\[TIDX:(\d+)\]/);
+              const tIdx = tMatch ? parseInt(tMatch[1], 10) : -1;
+              if (tIdx === rekTemuanIdx) {
+                temuanDeskripsi = t.deskripsi;
+                temuanId = tId;
+                break;
+              }
+            }
+          } else if (temuanList.length > 0) {
+            // No prefix, use first temuan as fallback
+            temuanDeskripsi = temuanList[0].deskripsi || "";
+            temuanId = temuanList[0].id;
+          }
+        }
+        
+        // Clean prefixes from display text
+        const cleanTemuanDeskripsi = temuanDeskripsi.replace(/^\[TIDX:\d+\]/, "");
+        const cleanRekIsi = (rek.isi || "").replace(/^\[TIDX:\d+\]/, "");
+        
+        // Status dari rekomendasi (default "BELUM TINDAK LANJUT" jika tidak ada)
+        const rekStatus = rek.status || "BELUM TINDAK LANJUT";
+        const statusLabel = mapStatusToFrontend(rekStatus);
+        
+        rows.push({
+          id: uid(`${rows.length}-${idx}`),
+          nomorLhp: nomorLHP,
+          temuan: cleanTemuanDeskripsi,
+          rekomendasi: cleanRekIsi,
+          batasWaktu: laporan.batasWaktu ? new Date(laporan.batasWaktu).toISOString().split('T')[0] : "",
+          statusLabel,
+          statusDot: dotByStatus(statusLabel),
+          picNama: pic,
+          picEmail: "",
+          perusahaanNama: perusahaan,
+          laporanId: laporan.id,
+          temuanId: temuanId,
+          rekomendasiId: rek.id,
+        });
+      });
+    }
+  });
+
+  return rows;
+};
+
+// ✅ dot mengikuti variasi status baru
+const dotByStatus = (status) => {
+  const s = String(status || "").trim().toLowerCase();
+  if (s.startsWith("sesuai")) return "bg-green-500";
+  if (s.includes("belum sesuai")) return "bg-red-500";
+  return DEFAULT_DOT;
+};
+
 export default function AttendancePage() {
-  const [rowsData, setRowsData] = useState(() =>
-    (initialRows || []).map((r, i) => ({
-      ...r,
-      id: r.id || uid(i),
-    }))
-  );
+  const [rowsData, setRowsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // =======================
   // ✅ FILTER STATE
@@ -83,16 +209,18 @@ export default function AttendancePage() {
   const [filterNomorLhp, setFilterNomorLhp] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterPic, setFilterPic] = useState("ALL");
+  const [filterPerusahaan, setFilterPerusahaan] = useState("ALL");
 
   // ✅ reset + disabled state
   const resetFilters = () => {
     setFilterNomorLhp("");
     setFilterStatus("ALL");
     setFilterPic("ALL");
+    setFilterPerusahaan("ALL");
   };
 
   const resetDisabled =
-    !String(filterNomorLhp || "").trim() && filterStatus === "ALL" && filterPic === "ALL";
+    !String(filterNomorLhp || "").trim() && filterStatus === "ALL" && filterPic === "ALL" && filterPerusahaan === "ALL";
 
   // ✅ rows yang ditampilkan = hasil filter + SORT nomor LHP (besar → kecil)
   const filteredRows = useMemo(() => {
@@ -101,6 +229,7 @@ export default function AttendancePage() {
     const list = (rowsData || []).filter((r) => {
       const status = String(r?.statusLabel || "");
       const pic = String(r?.picNama || "");
+      const perusahaan = String(r?.perusahaanNama || "");
 
       // ✅ GLOBAL KEYWORD SEARCH
       const haystack = [
@@ -119,8 +248,9 @@ export default function AttendancePage() {
       const matchKeyword = !q || haystack.includes(q);
       const matchStatus = filterStatus === "ALL" || status === filterStatus;
       const matchPic = filterPic === "ALL" || pic === filterPic;
+      const matchPerusahaan = filterPerusahaan === "ALL" || perusahaan === filterPerusahaan;
 
-      return matchKeyword && matchStatus && matchPic;
+      return matchKeyword && matchStatus && matchPic && matchPerusahaan;
     });
 
     // ✅ SORT nomor LHP: besar → kecil (yang kecil di bawah)
@@ -141,86 +271,118 @@ export default function AttendancePage() {
     });
 
     return list;
-  }, [rowsData, filterNomorLhp, filterStatus, filterPic]);
+  }, [rowsData, filterNomorLhp, filterStatus, filterPic, filterPerusahaan]);
 
   const [isInputBuktiOpen, setIsInputBuktiOpen] = useState(false);
   const [isViewBuktiOpen, setIsViewBuktiOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
-  // ✅ value per nomorLhp sekarang ARRAY history (newest di index 0)
-  const [buktiByLhp, setBuktiByLhp] = useState({});
+  // ✅ value per rekomendasiId sekarang ARRAY history (newest di index 0)
+  const [buktiByRekom, setBuktiByRekom] = useState({});
 
-  // ✅ dot mengikuti variasi status baru
-  const dotByStatus = (status) => {
-    const s = String(status || "").trim().toLowerCase();
-    if (s.startsWith("sesuai")) return "bg-green-500";
-    if (s.includes("belum sesuai")) return "bg-red-500";
-    return DEFAULT_DOT;
-  };
+  // Note: Status sekarang di-manage per rekomendasi di backend
+  // Setelah fetch data dari backend, status sudah benar dari rekomendasi.status
+  // Tidak perlu sync manual karena backend sudah update status rekomendasi setelah upload/approval
 
-  // ✅ status dari bukti terbaru:
-  // - belum ada bukti => "Belum Tindak Lanjut"
-  // - kalau input bukti status "Belum Sesuai" => tetap "Belum Sesuai" (meskipun pending/approved)
-  // - kalau input bukti "Sesuai" => "Sesuai - Pending Approval_1/_2" sampai APPROVED
-  const statusFromLatestBukti = (list) => {
-    const arr = Array.isArray(list) ? list : [];
-    if (arr.length === 0) return DEFAULT_STATUS;
+  // =======================
+  // ✅ FETCH DATA FROM BACKEND
+  // =======================
+  const fetchLaporan = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const laporanList = await laporanService.getLaporan();
+      
+      // Transform to rows
+      const transformedRows = transformLaporanToRows(laporanList);
+      setRowsData(transformedRows);
 
-    const latest = arr[0];
+      // Fetch dokumen for each laporan
+      const buktiMap = {};
+      for (const laporan of laporanList) {
+        const nomorLHP = laporan.nomorLHP || laporan.nomorLhp;
+        if (!nomorLHP) continue;
 
-    // status pilihan saat input bukti (dukungan beberapa nama field biar aman)
-    const picked = (
-      latest?.status ||
-      latest?.pickedStatus ||
-      latest?.statusLabel ||
-      latest?.statusTindakLanjut ||
-      ""
-    )
-      .toString()
-      .trim()
-      .toLowerCase();
+        try {
+          const dokumenData = await laporanService.getDokumenByNomorLHP(nomorLHP);
+          const dokumenList = dokumenData.dokumen || [];
 
-    const appr = String(latest?.approval?.state || "").toUpperCase();
+          // Transform dokumen to bukti format, grouped per rekomendasi
+          // Map rekomendasi by id for quick lookup
+          const rekomMap = new Map((laporan.rekomendasi || []).map((r) => [r.id, r]));
+          
+          dokumenList.forEach((dok) => {
+            if (!dok.rekomendasiId) {
+              return;
+            }
 
-    // ✅ PRIORITAS: kalau user pilih "Belum Sesuai" tetap "Belum Sesuai"
-    if (picked === "belum sesuai") {
-      return appr === "REJECTED" ? "Belum Sesuai - Ditolak" : "Belum Sesuai";
-    }
+            const targetList = buktiMap[dok.rekomendasiId] || [];
 
-    // kalau approval ditolak, tetap masuk kategori "Belum Sesuai" biar kena alert
-    if (appr === "REJECTED") return "Belum Sesuai - Ditolak";
+            // Backend returns url like "/dokumen/{id}/file" (tanpa /api)
+            // Construct full URL by prepending baseUrl
+            let fileUrl = null;
+            if (dok.url) {
+              // If url already starts with http, use as-is (full URL)
+              if (dok.url.startsWith('http')) {
+                fileUrl = dok.url;
+              } else {
+                // Prepend baseUrl to relative path
+                const base = baseUrl().replace(/\/$/, ''); // Remove trailing slash
+                const urlPath = dok.url.startsWith('/') ? dok.url : `/${dok.url}`;
+                fileUrl = `${base}${urlPath}`;
+              }
+            }
+            
+            // Get rekomendasi status from the associated rekomendasi
+            const rekomendasi = dok.rekomendasiId ? rekomMap.get(dok.rekomendasiId) : null;
+            const rekStatus = rekomendasi?.status || "BELUM TINDAK LANJUT";
+            const statusLabel = mapStatusToFrontend(rekStatus);
+            
+            // Determine approval state from status
+            let approvalState = "PENDING_1";
+            if (statusLabel === "Sesuai") {
+              approvalState = "APPROVED";
+            } else if (statusLabel.includes("Pending Approval_2")) {
+              approvalState = "PENDING_2";
+            } else if (statusLabel.includes("Ditolak")) {
+              approvalState = "REJECTED";
+            }
+            
+            targetList.push({
+              id: dok.id.toString(),
+              tanggalUpload: dok.tanggalUpload ? new Date(dok.tanggalUpload).toISOString().split('T')[0] : "",
+              keterangan: dok.keterangan || "",
+              fileUrl,
+              fileName: dok.originalName || dok.filename || "",
+              fileSize: dok.size || 0,
+              rekomendasiId: dok.rekomendasiId, // Store rekomendasiId for approval actions
+              status: statusLabel,
+              createdAt: dok.createdAt ? new Date(dok.createdAt).toISOString() : new Date().toISOString(),
+              approval: {
+                state: approvalState,
+                history: [],
+              },
+            });
 
-    if (appr === "APPROVED") return "Sesuai";
-    if (appr === "PENDING_2") return "Sesuai - Pending Approval_2";
-    // default pending 1 (atau state kosong)
-    return "Sesuai - Pending Approval_1";
-  };
-
-  // ✅ set status semua row dalam 1 nomorLhp
-  const resetStatusByNomorLhp = (nomorLhp, status = DEFAULT_STATUS) => {
-    if (!nomorLhp) return;
-    setRowsData((prev) =>
-      prev.map((r) =>
-        r.nomorLhp === nomorLhp ? { ...r, statusLabel: status, statusDot: dotByStatus(status) } : r
-      )
-    );
-  };
-
-  // ✅ AUTO-SYNC: setiap bukti berubah/approval berubah, status row mengikuti bukti latest
-  useEffect(() => {
-    setRowsData((prev) =>
-      prev.map((r) => {
-        const derived = statusFromLatestBukti(buktiByLhp?.[r.nomorLhp]);
-        const nextDot = dotByStatus(derived);
-
-        if ((r.statusLabel || DEFAULT_STATUS) === derived && (r.statusDot || DEFAULT_DOT) === nextDot) {
-          return r;
+            buktiMap[dok.rekomendasiId] = targetList;
+          });
+        } catch (err) {
+          console.error(`Error fetching dokumen for ${nomorLHP}:`, err);
         }
-        return { ...r, statusLabel: derived, statusDot: nextDot };
-      })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buktiByLhp]);
+      }
+
+      setBuktiByRekom(buktiMap);
+    } catch (err) {
+      console.error("Error fetching laporan:", err);
+      setError("Gagal memuat data laporan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLaporan();
+  }, []);
 
   // =======================
   // ✅ generate notifikasi H-3 dari rowsData
@@ -300,7 +462,9 @@ export default function AttendancePage() {
         const detail = JSON.parse(pending);
         localStorage.removeItem("lhp_scroll_target");
         setTimeout(() => scrollToRow(detail), 250);
-      } catch {}
+      } catch (err) {
+        console.error("Error parsing scroll target:", err);
+      }
     }
 
     return () => window.removeEventListener("goToLhpRow", handler);
@@ -310,7 +474,7 @@ export default function AttendancePage() {
   // =======================
   // INPUT LHP
   // =======================
-  const handleAddLhpPayload = (payload) => {
+  const handleAddLhpPayload = async (payload) => {
     console.log("✅ PAYLOAD DARI AddLhpModal:", payload);
 
     if (!payload?.nomorLhp) {
@@ -318,41 +482,82 @@ export default function AttendancePage() {
       return;
     }
 
-    const newRows = [];
-    const nomorLhp = payload.nomorLhp;
-    const picNama = payload.pic || "";
-    const picEmail = payload.emailPic || "";
+    try {
+      // Transform payload to backend format - each temuan contains its rekomendasi
+      const temuan = (payload.temuan || []).map((t) => ({
+        deskripsi: t.temuan || "",
+        rekomendasi: (t.rekomendasi || []).map((r) => ({
+          isi: r.rekomendasi || "",
+        })),
+      }));
 
-    (payload.temuan || []).forEach((t) => {
-      const temuanText = (t.temuan || "").trim();
-      (t.rekomendasi || []).forEach((r) => {
-        newRows.push({
-          id: uid(newRows.length),
-          nomorLhp,
-          temuan: temuanText,
-          rekomendasi: (r.rekomendasi || "").trim(),
-          batasWaktu: r.batasWaktu || "",
-          statusLabel: DEFAULT_STATUS,
-          statusDot: DEFAULT_DOT,
-          picNama,
-          picEmail,
-        });
+      // Use the first batasWaktu from rekomendasi (backend expects single batasWaktu on laporan)
+      const firstBatasWaktu = payload.temuan?.[0]?.rekomendasi?.[0]?.batasWaktu || "";
+
+      const laporanData = {
+        nomorLHP: payload.nomorLhp.trim(),
+        PIC: payload.pic.trim(),
+        perusahaan: payload.perusahaan.trim(),
+        batasWaktu: firstBatasWaktu,
+        temuan,
+      };
+
+      await laporanService.addLaporan(laporanData);
+
+      // Refresh data
+      await fetchLaporan();
+    } catch (error) {
+      console.error("Error adding laporan:", error);
+      alert("Gagal menambah LHP: " + (error.message || "Unknown error"));
+    }
+  };
+
+  // =======================
+  // UPDATE DATA
+  // =======================
+  const handleAddUpdateRow = async (newRow) => {
+    if (!newRow?.nomorLhp) return;
+
+    try {
+      // Add new rekomendasi
+      await rekomendasiService.addRekomendasi(newRow.nomorLhp, {
+        isi: newRow.rekomendasi,
       });
-    });
 
-    setRowsData((prev) => [...newRows, ...prev]);
+      // Update batasWaktu if needed (this updates the laporan's batasWaktu)
+      if (newRow.batasWaktu) {
+        await laporanService.updateLaporan(newRow.nomorLhp, {
+          batasWaktu: newRow.batasWaktu,
+        });
+      }
+
+      // Refresh data
+      await fetchLaporan();
+    } catch (error) {
+      console.error("Error adding update row:", error);
+      alert("Gagal menambah rekomendasi: " + (error.message || "Unknown error"));
+    }
   };
 
-  // =======================
-  // UPDATE DATA (tetap)
-  // =======================
-  const handleAddUpdateRow = (newRow) => {
-    setRowsData((prev) => [{ ...newRow, id: newRow.id || uid(prev.length) }, ...prev]);
-  };
-
-  const handleUpdateRowDate = (rowId, newDate) => {
+  const handleUpdateRowDate = async (rowId, newDate) => {
     if (!rowId) return;
-    setRowsData((prev) => prev.map((r) => (r.id === rowId ? { ...r, batasWaktu: newDate } : r)));
+
+    try {
+      const row = rowsData.find((r) => r.id === rowId);
+      if (!row || !row.rekomendasiId) return;
+
+      // Update rekomendasi date by updating the laporan's batasWaktu
+      // Note: Backend stores batasWaktu on laporan level, not rekomendasi level
+      await laporanService.updateLaporan(row.nomorLhp, {
+        batasWaktu: newDate,
+      });
+
+      // Refresh data
+      await fetchLaporan();
+    } catch (error) {
+      console.error("Error updating row date:", error);
+      alert("Gagal mengupdate tanggal: " + (error.message || "Unknown error"));
+    }
   };
 
   // =======================
@@ -368,147 +573,177 @@ export default function AttendancePage() {
     setIsViewBuktiOpen(true);
   };
 
-  // ✅ simpan sebagai HISTORY (array)
-  const handleSubmitBukti = (payload) => {
+  // ✅ simpan sebagai HISTORY (array) + upload to backend
+  const handleSubmitBukti = async (payload) => {
     if (!selectedRow?.nomorLhp) return;
 
     const nomorLhp = selectedRow.nomorLhp;
 
-    const entry = {
-      id: uid("bukti"),
-      ...payload,
-      createdAt: new Date().toISOString(),
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Check if file is provided (it should be a File object from the input)
+      // Note: Field name "file" may need to match your multer configuration in backend route
+      if (payload.file) {
+        formData.append("file", payload.file);
+      } else if (payload.fileUrl && payload.fileUrl.startsWith("blob:")) {
+        // If it's a blob URL, we need to fetch it first
+        const response = await fetch(payload.fileUrl);
+        const blob = await response.blob();
+        const file = new File([blob], payload.fileName || "bukti", { type: blob.type });
+        formData.append("file", file);
+      } else {
+        throw new Error("File bukti wajib di-upload");
+      }
 
-      // ✅ simpan juga status pilihan saat input (biar bisa dipakai statusFromLatestBukti)
-      status:
-        payload?.status || payload?.pickedStatus || payload?.statusLabel || payload?.statusTindakLanjut || "Sesuai",
+      formData.append("tanggalUpload", payload.tanggalUpload);
+      if (payload.keterangan) {
+        formData.append("keterangan", payload.keterangan);
+      }
 
-      approval: {
-        state: "PENDING_1", // PENDING_1 | PENDING_2 | APPROVED | REJECTED
-        history: [],
-      },
-    };
+      // Map frontend status to backend status for upload
+      // Backend accepts multiple statuses now: "SESUAI PENDING APPROVAL 1", "BELUM SESUAI", etc.
+      let backendStatus = null;
+      const frontendStatus = payload.status?.toString().trim().toLowerCase();
+      if (frontendStatus === "sesuai" || frontendStatus?.startsWith("sesuai")) {
+        backendStatus = "SESUAI PENDING APPROVAL 1";
+      } else if (frontendStatus === "belum sesuai" || frontendStatus?.includes("belum sesuai")) {
+        backendStatus = "BELUM SESUAI";
+      }
+      
+      // Send statusRekomendasi (not statusLaporan) - backend will update rekomendasi status
+      if (backendStatus) {
+        formData.append("statusRekomendasi", backendStatus);
+      }
 
-    setBuktiByLhp((prev) => {
-      const prevList = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
-      return { ...prev, [nomorLhp]: [entry, ...prevList] };
-    });
+      // Get rekomendasiId from selectedRow
+      const rekomendasiId = selectedRow?.rekomendasiId;
 
-    setIsInputBuktiOpen(false);
+      // Upload to backend with rekomendasiId in query
+      await laporanService.uploadDokumen(nomorLhp, formData, rekomendasiId);
+
+      // Refresh data to get updated dokumen list
+      await fetchLaporan();
+
+      setIsInputBuktiOpen(false);
+    } catch (error) {
+      console.error("Error submitting bukti:", error);
+      alert("Gagal mengupload bukti: " + (error.message || "Unknown error"));
+    }
   };
 
   // ✅ approve/reject bukti tertentu
-  const handleApprovalAction = (nomorLhp, buktiId, action, meta = {}) => {
+  const handleApprovalAction = async (nomorLhp, buktiId, action) => {
     if (!nomorLhp || !buktiId) return;
 
-    setBuktiByLhp((prev) => {
-      const list = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
+    try {
+      // Get bukti to find rekomendasiId (hanya untuk rekomendasi terkait)
+      const allBukti = Object.values(buktiByRekom).flat();
+      const currentBukti = allBukti.find((b) => b.id === buktiId);
 
-      const nextList = list.map((b) => {
-        if (b.id !== buktiId) return b;
+      if (!currentBukti?.rekomendasiId) {
+        throw new Error("Rekomendasi ID tidak ditemukan untuk bukti ini");
+      }
 
-        const approval = b.approval || { state: "PENDING_1", history: [] };
-        const now = new Date().toISOString();
+      const rekomendasiId = currentBukti.rekomendasiId;
 
-        const nextHistory = [
-          {
-            action, // APPROVE / REJECT
-            at: now,
-            note: meta.note || "",
-            byName: meta.byName || "",
-            byEmail: meta.byEmail || "",
-            fromState: approval.state,
-          },
-          ...(approval.history || []),
-        ];
+      if (action === "APPROVE") {
+        // Check current status to determine which approval to call
+        const currentState = currentBukti?.approval?.state || "PENDING_1";
 
-        let nextState = approval.state;
-        if (action === "APPROVE") {
-          nextState = approval.state === "PENDING_1" ? "PENDING_2" : "APPROVED";
-        } else if (action === "REJECT") {
-          nextState = "REJECTED";
+        if (currentState === "PENDING_1") {
+          await laporanService.buktiFirstApprovalByNomorLHP(nomorLhp, rekomendasiId);
+        } else if (currentState === "PENDING_2") {
+          await laporanService.buktiSecondApprovalByNomorLHP(nomorLhp, rekomendasiId);
         }
+      } else if (action === "REJECT") {
+        await laporanService.rejectBuktiByNomorLHP(nomorLhp, rekomendasiId);
+      }
 
-        return { ...b, approval: { ...approval, state: nextState, history: nextHistory } };
-      });
-
-      return { ...prev, [nomorLhp]: nextList };
-    });
+      // Refresh data
+      await fetchLaporan();
+    } catch (error) {
+      console.error("Error approval action:", error);
+      alert("Gagal melakukan approval: " + (error.message || "Unknown error"));
+    }
   };
 
   // ✅ hapus 1 item bukti
-  const handleDeleteBuktiOne = (nomorLhp, buktiId) => {
+  const handleDeleteBuktiOne = async (nomorLhp, buktiId) => {
     if (!nomorLhp || !buktiId) return;
 
-    setBuktiByLhp((prev) => {
-      const prevList = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
-      const target = prevList.find((b) => b.id === buktiId);
+    try {
+      await laporanService.deleteDokumen(parseInt(buktiId));
 
-      if (target?.fileUrl && target.fileUrl.startsWith("blob:")) {
-        try {
-          URL.revokeObjectURL(target.fileUrl);
-        } catch (e) {}
-      }
-
-      const nextList = prevList.filter((b) => b.id !== buktiId);
-      const next = { ...prev };
-
-      if (nextList.length === 0) {
-        delete next[nomorLhp];
-        resetStatusByNomorLhp(nomorLhp, DEFAULT_STATUS);
-      } else {
-        next[nomorLhp] = nextList;
-        resetStatusByNomorLhp(nomorLhp, statusFromLatestBukti(nextList));
-      }
-
-      return next;
-    });
+      // Refresh data
+      await fetchLaporan();
+    } catch (error) {
+      console.error("Error deleting bukti:", error);
+      alert("Gagal menghapus bukti: " + (error.message || "Unknown error"));
+    }
   };
 
-  // ✅ hapus semua history bukti untuk 1 LHP
-  const handleDeleteBuktiAll = (nomorLhp) => {
+  // ✅ hapus semua history bukti untuk 1 rekomendasi
+  const handleDeleteBuktiAll = async (nomorLhp) => {
     if (!nomorLhp) return;
 
-    setBuktiByLhp((prev) => {
-      const prevList = Array.isArray(prev[nomorLhp]) ? prev[nomorLhp] : [];
+    try {
+      const rekomendasiId = selectedRow?.rekomendasiId;
+      const buktiList = rekomendasiId ? buktiByRekom[rekomendasiId] || [] : [];
 
-      prevList.forEach((b) => {
-        if (b?.fileUrl && b.fileUrl.startsWith("blob:")) {
-          try {
-            URL.revokeObjectURL(b.fileUrl);
-          } catch (e) {}
+      for (const bukti of buktiList) {
+        try {
+          await laporanService.deleteDokumen(parseInt(bukti.id));
+        } catch (err) {
+          console.error(`Error deleting dokumen ${bukti.id}:`, err);
         }
-      });
+      }
 
-      const next = { ...prev };
-      delete next[nomorLhp];
-      return next;
-    });
-
-    resetStatusByNomorLhp(nomorLhp, DEFAULT_STATUS);
-    setIsViewBuktiOpen(false);
+      // Refresh data
+      await fetchLaporan();
+      setIsViewBuktiOpen(false);
+    } catch (error) {
+      console.error("Error deleting all bukti:", error);
+      alert("Gagal menghapus semua bukti: " + (error.message || "Unknown error"));
+    }
   };
 
-  // cleanup blob urls saat unmount
-  useEffect(() => {
-    return () => {
-      Object.values(buktiByLhp).forEach((list) => {
-        if (!Array.isArray(list)) return;
-        list.forEach((b) => {
-          if (b?.fileUrl && b.fileUrl.startsWith("blob:")) {
-            try {
-              URL.revokeObjectURL(b.fileUrl);
-            } catch (e) {}
-          }
-        });
-      });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ✅ ambil latest bukti (untuk prefill modal)
-  const selectedBuktiList = selectedRow ? buktiByLhp[selectedRow.nomorLhp] || [] : [];
+  // ✅ ambil bukti per rekomendasi saja (hindari tercampur antar rekom dalam 1 LHP)
+  const selectedBuktiList = selectedRow
+    ? buktiByRekom[selectedRow.rekomendasiId] || []
+    : [];
   const latestBukti = selectedBuktiList?.[0] || null;
+
+  if (loading) {
+    return (
+      <NavbarSidebarLayout isFooter={false}>
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="mb-4 text-lg text-gray-600 dark:text-gray-400">Memuat data...</div>
+          </div>
+        </div>
+      </NavbarSidebarLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <NavbarSidebarLayout isFooter={false}>
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="mb-4 text-lg text-red-600">{error}</div>
+            <button
+              onClick={fetchLaporan}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </NavbarSidebarLayout>
+    );
+  }
 
   return (
     <NavbarSidebarLayout isFooter={false}>
@@ -517,6 +752,7 @@ export default function AttendancePage() {
         onAddLhpPayload={handleAddLhpPayload}
         onAddUpdateRow={handleAddUpdateRow}
         onUpdateRowDate={handleUpdateRowDate}
+        onRefresh={fetchLaporan}
         // ✅ props filter
         filterNomorLhp={filterNomorLhp}
         onChangeFilterNomorLhp={setFilterNomorLhp}
@@ -524,9 +760,12 @@ export default function AttendancePage() {
         onChangeFilterStatus={setFilterStatus}
         filterPic={filterPic}
         onChangeFilterPic={setFilterPic}
+        filterPerusahaan={filterPerusahaan}
+        onChangeFilterPerusahaan={setFilterPerusahaan}
         // ✅ reset + disabled
         onResetFilters={resetFilters}
         resetDisabled={resetDisabled}
+        summaryRows={filteredRows}
       />
 
       <div className="flex flex-col">
@@ -535,7 +774,7 @@ export default function AttendancePage() {
             <div className="overflow-hidden shadow">
               <LhpTable
                 rows={filteredRows}
-                buktiByLhp={buktiByLhp}
+                buktiByLhp={buktiByRekom}
                 formatTanggal={formatTanggal}
                 onOpenInputBukti={openInputBukti}
                 onOpenViewBukti={openViewBukti}

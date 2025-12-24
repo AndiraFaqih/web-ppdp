@@ -16,6 +16,7 @@ export default function LhpTable({
         <Table.HeadCell>BATAS WAKTU</Table.HeadCell>
         <Table.HeadCell>STATUS</Table.HeadCell>
         <Table.HeadCell>PIC</Table.HeadCell>
+        <Table.HeadCell>PERUSAHAAN</Table.HeadCell>
       </Table.Head>
 
       <Table.Body className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
@@ -30,10 +31,12 @@ export default function LhpTable({
           </Table.Row>
         ) : (
           rows.map((row) => {
-            // ✅ sekarang bukti per LHP adalah ARRAY history
-            const buktiList = Array.isArray(buktiByLhp?.[row.nomorLhp])
-              ? buktiByLhp[row.nomorLhp]
-              : [];
+            // ✅ bukti diikat ke rekomendasiId (fallback ke nomorLhp jika belum ada id)
+            const buktiList = Array.isArray(buktiByLhp?.[row.rekomendasiId])
+              ? buktiByLhp[row.rekomendasiId]
+              : Array.isArray(buktiByLhp?.[row.nomorLhp])
+                ? buktiByLhp[row.nomorLhp]
+                : [];
 
             const hasBukti = buktiList.length > 0;
             const latestBukti = hasBukti ? buktiList[0] : null;
@@ -116,6 +119,11 @@ export default function LhpTable({
                   <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
                     {row.picEmail}
                   </div>
+                </Table.Cell>
+
+                {/* PERUSAHAAN */}
+                <Table.Cell className="p-4 align-top text-base font-medium text-gray-900 dark:text-white whitespace-normal break-words">
+                  {row.perusahaanNama}
                 </Table.Cell>
               </Table.Row>
             );

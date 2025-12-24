@@ -22,6 +22,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
   const [nomorLhp, setNomorLhp] = useState("");
   const [pic, setPic] = useState("");
   const [emailPic, setEmailPic] = useState("");
+  const [perusahaan, setPerusahaan] = useState("");
 
   const [temuanList, setTemuanList] = useState([makeEmptyTemuan()]);
 
@@ -31,6 +32,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
       setNomorLhp("");
       setPic("");
       setEmailPic("");
+      setPerusahaan("");
       setTemuanList([makeEmptyTemuan()]);
     }
   }, [isOpen]);
@@ -90,6 +92,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
       nomorLhp: nomorLhp.trim(),
       pic: pic.trim(),
       emailPic: emailPic.trim(),
+      perusahaan: perusahaan.trim(),
       temuan: temuanList.map((t) => ({
         temuan: (t.temuan || "").trim(),
         rekomendasi: (t.rekomendasiList || []).map((r) => ({
@@ -103,6 +106,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
     // validasi minimal
     if (!payload.nomorLhp) return;
     if (!payload.pic || !payload.emailPic) return;
+    if (!payload.perusahaan) return;
     if (payload.temuan.some((t) => !t.temuan)) return;
     if (
       payload.temuan.some((t) =>
@@ -163,6 +167,19 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
                 placeholder="witari@ojk.go.id"
                 value={emailPic}
                 onChange={(e) => setEmailPic(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
+            <Label htmlFor="perusahaan">Perusahaan</Label>
+            <div className="mt-1">
+              <TextInput
+                id="perusahaan"
+                name="perusahaan"
+                placeholder="PT. Contoh Indonesia"
+                value={perusahaan}
+                onChange={(e) => setPerusahaan(e.target.value)}
               />
             </div>
           </div>
@@ -284,7 +301,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
         </div>
 
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          * Wajib: Nomor LHP, PIC, Email PIC, setiap Temuan terisi, setiap Rekomendasi + batas waktu terisi.
+          * Wajib: Nomor LHP, PIC, Email PIC, Perusahaan, setiap Temuan terisi, setiap Rekomendasi + batas waktu terisi.
         </p>
       </Modal.Body>
 

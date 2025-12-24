@@ -105,7 +105,7 @@ const DashboardNavbar = () => {
           <div className="flex items-center">
             <Navbar.Brand>
               <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">
-                WFH Attendance App
+                Pemantauan Tindak Lanjut Rekomendasi LHP
               </span>
             </Navbar.Brand>
           </div>
