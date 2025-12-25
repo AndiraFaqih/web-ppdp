@@ -108,19 +108,19 @@ export default function InputBuktiModal({
 
   return (
     <Modal onClose={onClose} show={isOpen} size="3xl">
-      <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-        <strong>Input Bukti</strong>
+      <Modal.Header className="border-b-2 border-gray-300 !p-4 dark:border-gray-600">
+        <strong className="text-lg">📁 Input Bukti</strong>
       </Modal.Header>
 
-      <Modal.Body>
+      <Modal.Body className="max-h-[calc(100vh-200px)] overflow-y-auto">
         {!row ? (
           <div className="text-sm text-gray-500 dark:text-gray-400">
             Data tidak tersedia.
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Info LHP */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="nomorLhp">Nomor LHP</Label>
                 <div className="mt-1">
@@ -139,7 +139,7 @@ export default function InputBuktiModal({
             <div>
               <Label htmlFor="temuan">Temuan</Label>
               <div className="mt-1">
-                <Textarea id="temuan" value={row.temuan || ""} readOnly rows={4} />
+                <Textarea id="temuan" value={row.temuan || ""} readOnly rows={2} className="border-2 border-gray-300 dark:border-gray-600" />
               </div>
             </div>
 
@@ -150,13 +150,14 @@ export default function InputBuktiModal({
                   id="rekomendasi"
                   value={row.rekomendasi || ""}
                   readOnly
-                  rows={3}
+                  rows={2}
+                  className="border-2 border-gray-300 dark:border-gray-600"
                 />
               </div>
             </div>
 
             {/* Input bukti */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="tanggalUpload">Tanggal Upload Bukti</Label>
                 <div className="mt-1">
@@ -194,16 +195,17 @@ export default function InputBuktiModal({
                   placeholder="Catatan singkat..."
                   value={keterangan}
                   onChange={(e) => setKeterangan(e.target.value)}
+                  className="border-2 border-gray-300 dark:border-gray-600"
                 />
               </div>
             </div>
 
             {/* ✅ pilihan status (disabled sebelum bukti siap) */}
-            <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+            <div className="rounded-lg border-2 border-blue-300 p-4 dark:border-blue-600 bg-blue-50 dark:bg-gray-800 shadow-md">
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                Status Tindak Lanjut
+                📊 Status Tindak Lanjut
               </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                 * Tombol aktif setelah tanggal upload & file bukti terisi (atau sudah ada bukti sebelumnya).
                 Status akan diperbarui saat klik <b>Simpan Bukti</b>.
               </p>
@@ -230,7 +232,7 @@ export default function InputBuktiModal({
 
               {/* ✅ TAMBAHAN: opsi perpanjang deadline (CATATAN SAJA) */}
               {pickedStatus === "Belum Sesuai" && (
-                <div className="mt-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+                <div className="mt-4 rounded-lg border border-gray-300 p-4 bg-gray-50 dark:border-gray-600 dark:bg-gray-800/50 shadow-sm">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="perpanjang"
@@ -244,11 +246,11 @@ export default function InputBuktiModal({
                   </div>
 
                   {isPerpanjang && (
-                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <Label>Deadline Awal</Label>
                         <div className="mt-1">
-                          <TextInput value={row?.batasWaktu || ""} readOnly />
+                          <TextInput value={row?.batasWaktu || ""} readOnly className="border-2 border-gray-300 dark:border-gray-600" />
                         </div>
                       </div>
 
@@ -263,6 +265,7 @@ export default function InputBuktiModal({
                             value={usulanBatasWaktu}
                             onChange={(e) => setUsulanBatasWaktu(e.target.value)}
                             disabled={!isBuktiReady}
+                            className="border-2 border-gray-300 dark:border-gray-600"
                           />
                         </div>
                       </div>
@@ -272,11 +275,12 @@ export default function InputBuktiModal({
                         <div className="mt-1">
                           <Textarea
                             id="catatanPerpanjangan"
-                            rows={3}
+                            rows={2}
                             placeholder="Contoh: butuh tambahan waktu untuk pemenuhan dokumen pendukung..."
                             value={catatanPerpanjangan}
                             onChange={(e) => setCatatanPerpanjangan(e.target.value)}
                             disabled={!isBuktiReady}
+                            className="border-2 border-gray-300 dark:border-gray-600"
                           />
                         </div>
                         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -292,9 +296,9 @@ export default function InputBuktiModal({
         )}
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="border-t-2 border-gray-300 dark:border-gray-600">
         <Button color="primary" onClick={handleSubmit} disabled={!row}>
-          Simpan Bukti
+          💾 Simpan Bukti
         </Button>
         <Button color="gray" onClick={onClose}>
           Batal

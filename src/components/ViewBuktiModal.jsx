@@ -42,23 +42,23 @@ export default function ViewBuktiModal({
 
   return (
     <Modal onClose={onClose} show={isOpen} size="5xl">
-      <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-        <strong>Riwayat Bukti</strong>
+      <Modal.Header className="border-b-2 border-gray-300 !p-4 dark:border-gray-600">
+        <strong className="text-lg">📋 Riwayat Bukti</strong>
       </Modal.Header>
 
-      <Modal.Body>
+      <Modal.Body className="max-h-[calc(100vh-200px)] overflow-y-auto">
         {!row ? (
           <div className="text-sm text-gray-500 dark:text-gray-400">
             Data tidak tersedia.
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 p-4 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-200">
+            <div className="rounded-lg border-2 border-blue-300 p-4 text-sm text-gray-700 shadow-md dark:border-blue-600 dark:text-gray-200 bg-blue-50 dark:bg-gray-800">
               <div>
-                <span className="font-semibold">Nomor LHP:</span> {row.nomorLhp}
+                <span className="font-semibold">📄 Nomor LHP:</span> {row.nomorLhp}
               </div>
               <div className="mt-1">
-                <span className="font-semibold">Batas Waktu:</span>{" "}
+                <span className="font-semibold">⏰ Batas Waktu:</span>{" "}
                 {row.batasWaktu || "-"}
               </div>
             </div>
@@ -70,9 +70,9 @@ export default function ViewBuktiModal({
             ) : (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 {/* LIST HISTORY */}
-                <div className="rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-white">
-                    Daftar Upload ({sorted.length})
+                <div className="rounded-lg border-2 border-gray-300 shadow-lg dark:border-gray-600">
+                  <div className="border-b-2 border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
+                    📂 Daftar Upload ({sorted.length})
                   </div>
 
                   <div className="max-h-[420px] overflow-auto">
@@ -86,9 +86,9 @@ export default function ViewBuktiModal({
                           key={b.id}
                           type="button"
                           onClick={() => setSelectedId(b.id)}
-                          className={`w-full border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50
-                                      dark:border-gray-700 dark:hover:bg-gray-700 ${
-                                        active ? "bg-gray-50 dark:bg-gray-700" : ""
+                          className={`w-full border-b-2 border-gray-200 px-4 py-3 text-left hover:bg-blue-50
+                                      dark:border-gray-600 dark:hover:bg-gray-700 transition-colors ${
+                                        active ? "bg-blue-100 dark:bg-gray-700 border-l-4 border-l-blue-500" : ""
                                       }`}
                         >
                           <div className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -116,26 +116,26 @@ export default function ViewBuktiModal({
                     })}
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+                  <div className="flex items-center justify-between gap-2 border-t-2 border-gray-300 px-4 py-3 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
                     <Button
                       color="failure"
-                      size="xs"
+                      size="sm"
                       onClick={() => onDeleteAll?.(nomorLhp)}
                     >
-                      Hapus Semua
+                      🗑️ Hapus Semua
                     </Button>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
                       * Hapus semua bukti untuk LHP ini
                     </p>
                   </div>
                 </div>
 
                 {/* DETAIL SELECTED */}
-                <div className="lg:col-span-2 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                <div className="lg:col-span-2 rounded-lg border-2 border-gray-300 p-4 shadow-lg dark:border-gray-600">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Detail Bukti
+                        📝 Detail Bukti
                       </div>
                       <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                         Tanggal Upload:{" "}
@@ -165,9 +165,9 @@ export default function ViewBuktiModal({
 
                   {/* ✅ TAMBAHAN: catatan perpanjangan deadline (jika ada) */}
                   {selected?.perpanjangan && (
-                    <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                      <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                        Catatan Perpanjangan Deadline (Tidak mengubah deadline asli)
+                    <div className="mt-4 rounded-lg border-2 border-yellow-300 bg-yellow-50 p-3 text-sm text-gray-700 shadow-md dark:border-yellow-600 dark:bg-gray-800 dark:text-gray-200">
+                      <div className="text-xs font-semibold text-yellow-800 dark:text-yellow-300">
+                        ⏳ Catatan Perpanjangan Deadline (Tidak mengubah deadline asli)
                       </div>
 
                       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -191,9 +191,9 @@ export default function ViewBuktiModal({
                   )}
 
                   {selected?.keterangan && (
-                    <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    <div className="mt-4 rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm text-gray-700 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
                       <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                        Keterangan
+                        💬 Keterangan
                       </div>
                       <div className="mt-1 whitespace-pre-wrap">{selected.keterangan}</div>
                     </div>
@@ -231,11 +231,11 @@ export default function ViewBuktiModal({
                       Download
                     </a>
                     {/* ✅ APPROVAL BERJENJANG */}
-                    <div className="mt-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                    <div className="mt-6 rounded-lg border-2 border-green-300 p-4 shadow-md dark:border-green-600 bg-green-50 dark:bg-gray-800">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Approval Berjenjang
+                            ✅ Approval Berjenjang
                           </div>
 
                           <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
@@ -263,7 +263,7 @@ export default function ViewBuktiModal({
                           (selected?.approval?.history || []).slice(0, 5).map((h, idx) => (
                             <div
                               key={idx}
-                              className="rounded-lg bg-gray-50 p-3 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              className="rounded-lg border border-gray-300 bg-white p-3 text-xs text-gray-700 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                             >
                               <div className="font-semibold">
                                 {h.action === "APPROVE" ? "✅ Disetujui" : "❌ Ditolak"}{" "}
@@ -322,7 +322,7 @@ export default function ViewBuktiModal({
         )}
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="border-t-2 border-gray-300 dark:border-gray-600">
         <Button color="gray" onClick={onClose}>
           Tutup
         </Button>
