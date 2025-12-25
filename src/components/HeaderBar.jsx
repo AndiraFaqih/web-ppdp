@@ -58,21 +58,30 @@ export default function HeaderBar({
 
   return (
     <>
-      <div className="block items-center justify-between border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:flex">
-        <div className="mb-1 w-full">
-          <div className="mb-4">
-            <Breadcrumb className="mb-4"></Breadcrumb>
-            {/* <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-              Monitoring LHP
-            </h1> */}
+      {/* ===== SECTION 1: DASHBOARD GRAFIK DAN SUMMARY ===== */}
+      <div className="bg-gray-50 dark:bg-gray-900 p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="mb-4">
+          <Breadcrumb className="mb-4"></Breadcrumb>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            Dashboard Rekomendasi
+          </h2>
+        </div>
+        
+        {/* Summary Dashboard dengan grafik */}
+        <SummaryDashboard rows={summaryRows || rows} />
+      </div>
 
-            {/* ✅ TAMBAHAN MINIMAL: summary dashboard */}
-            <SummaryDashboard rows={summaryRows || rows} />
-          </div>
-
-          <div className="sm:flex sm:items-center sm:gap-3">
-            {/* FILTERS */}
-            <div className="mb-3 flex flex-col gap-2 sm:mb-0 sm:flex-row sm:items-center">
+      {/* ===== SECTION 2: FILTER & ACTIONS ===== */}
+      <div className="p-4 sm:p-6 bg-gray-100 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-300 dark:border-gray-600">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              🔍 Filter & Pencarian
+            </h3>
+            
+            <div className="sm:flex sm:items-center sm:gap-3 sm:justify-between">
+              {/* FILTERS */}
+              <div className="mb-3 flex flex-col gap-2 sm:mb-0 sm:flex-row sm:items-center sm:flex-wrap">
               <form className="lg:pr-3">
                 <Label htmlFor="users-search" className="sr-only">
                   Search
@@ -135,12 +144,13 @@ export default function HeaderBar({
             </div>
 
             {/* BUTTONS RIGHT */}
-            <div className="ml-auto flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <AddLhpButton onClick={() => setIsAddOpen(true)} />
               <UpdateDataButton onClick={() => setIsUpdateOpen(true)} />
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <AddLhpModal

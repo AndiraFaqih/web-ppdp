@@ -143,21 +143,21 @@ export default function SummaryDashboard({ rows = [] }) {
   }, [stats.belumTindak, stats.belumSesuai, stats.pending, stats.approved]);
 
   return (
-    <div className="mt-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* KIRI */}
+    <div className="">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* KIRI - Summary Cards */}
         <div className="space-y-4 lg:col-span-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-              Total Rekomendasi
+          <div className="rounded-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-blue-600 dark:from-gray-800 dark:to-gray-800">
+            <div className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+              📋 Total Rekomendasi
             </div>
-            <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="mt-2 text-3xl font-bold text-blue-900 dark:text-white">
               {stats.total}
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="rounded-lg border-2 border-green-300 bg-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-green-600 dark:bg-gray-800">
+            <div className="text-sm font-semibold text-green-800 dark:text-green-300">
               Approved
             </div>
             <div className="mt-2 flex items-end justify-between">
@@ -171,8 +171,8 @@ export default function SummaryDashboard({ rows = [] }) {
           </div>
 
           {/* ✅ tambahan card */}
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="rounded-lg border-2 border-yellow-300 bg-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-yellow-600 dark:bg-gray-800">
+            <div className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
               Pending Approval
             </div>
             <div className="mt-2 flex items-end justify-between">
@@ -186,22 +186,22 @@ export default function SummaryDashboard({ rows = [] }) {
           </div>
         </div>
 
-        {/* TENGAH */}
+        {/* TENGAH - Grafik Pie Chart */}
         <div className="lg:col-span-6">
-          <div className="h-full rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-              Rekomendasi berdasarkan Status
+          <div className="h-full rounded-lg border-2 border-blue-300 bg-white p-6 shadow-lg dark:border-blue-600 dark:bg-gray-800">
+            <div className="text-base font-bold text-blue-900 dark:text-blue-300 mb-3">
+              📊 Rekomendasi berdasarkan Status
             </div>
-            <div className="mt-3 h-[240px]">
+            <div className="mt-4 h-[280px] flex items-center justify-center">
               <canvas ref={canvasRef} />
             </div>
           </div>
         </div>
 
-        {/* KANAN */}
+        {/* KANAN - Status Cards */}
         <div className="space-y-4 lg:col-span-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="rounded-lg border-2 border-red-300 bg-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-red-600 dark:bg-gray-800">
+            <div className="text-sm font-semibold text-red-800 dark:text-red-300">
               Rekomendasi Belum Sesuai
             </div>
             <div className="mt-2 flex items-end justify-between">
@@ -214,8 +214,8 @@ export default function SummaryDashboard({ rows = [] }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="rounded-lg border-2 border-gray-400 bg-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-gray-500 dark:bg-gray-800">
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-300">
               Rekomendasi Belum Tindak Lanjut
             </div>
             <div className="mt-2 flex items-end justify-between">

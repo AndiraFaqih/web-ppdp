@@ -11,6 +11,10 @@ export default function UpdateDataModal({
   onUpdateRowDate,
   onRefresh,
 }) {
+  // Mode selection: 'update' or 'add'
+  const [mode, setMode] = useState("update");
+  
+  // === UPDATE MODE STATES ===
   // Step 1: Select nomorLHP
   const [nomorLhp, setNomorLhp] = useState("");
   
@@ -28,6 +32,12 @@ export default function UpdateDataModal({
   // State for rekomendasi from backend
   const [rekomOptions, setRekomOptions] = useState([]);
   const [loadingRekom, setLoadingRekom] = useState(false);
+
+  // === ADD MODE STATES ===
+  const [addNomorLhp, setAddNomorLhp] = useState("");
+  const [addTemuan, setAddTemuan] = useState([
+    { temuan: "", rekomendasi: [{ rekomendasi: "", batasWaktu: "" }] }
+  ]);
 
   // ✅ Extract unique nomor LHP
   const nomorOptions = useMemo(
@@ -116,15 +126,55 @@ export default function UpdateDataModal({
   const basePic = rowsByLhp[0]?.picNama || "";
   const baseEmail = rowsByLhp[0]?.picEmail || "";
 
-  // ✅ Reset form when modal closes or nomorLhp changes
+  // === ADD MODE HELPER FUNCTIONS ===
+  const handleAddTemuan = () => {
+    setAddTemuan([...addTemuan, { temuan: "", rekomendasi: [{ rekomendasi: "", batasWaktu: "" }] }]);
+  };
+
+  const handleRemoveTemuan = (temuanIdx) => {
+    if (addTemuan.length > 1) {
+      setAddTemuan(addTemuan.filter((_, idx) => idx !== temuanIdx));
+    }
+  };
+
+  const handleTemuanChange = (temuanIdx, value) => {
+    const updated = [...addTemuan];
+    updated[temuanIdx].temuan = value;
+    setAddTemuan(updated);
+  };
+
+  const handleAddRekomendasi = (temuanIdx) => {
+    const updated = [...addTemuan];
+    updated[temuanIdx].rekomendasi.push({ rekomendasi: "", batasWaktu: "" });
+    setAddTemuan(updated);
+  };
+
+  const handleRemoveRekomendasi = (temuanIdx, rekIdx) => {
+    const updated = [...addTemuan];
+    if (updated[temuanIdx].rekomendasi.length > 1) {
+      updated[temuanIdx].rekomendasi = updated[temuanIdx].rekomendasi.filter((_, idx) => idx !== rekIdx);
+      setAddTemuan(updated);
+    }
+  };
+
+  const handleRekomendasiChange = (temuanIdx, rekIdx, field, value) => {
+    const updated = [...addTemuan];
+    updated[temuanIdx].rekomendasi[rekIdx][field] = value;
+    setAddTemuan(updated);
+  };
+
+  // ✅ Reset form when modal closes or mode changes
   useEffect(() => {
     if (!isOpen) {
+      setMode("update");
       setNomorLhp("");
       setSelectedTemuanId(null);
       setTemuanInputValue("");
       setSelectedRekId(null);
       setRekInputValue("");
       setBatasWaktu("");
+      setAddNomorLhp("");
+      setAddTemuan([{ temuan: "", rekomendasi: [{ rekomendasi: "", batasWaktu: "" }] }]);
     }
   }, [isOpen]);
 
@@ -171,81 +221,67 @@ export default function UpdateDataModal({
     return uniqueRekIds.size > 1;
   }, [rowsByLhp, selectedTemuan]);
 
-  // ✅ Handle submit - update only selected temuan & rekomendasi combination
+  // ✅ Handle submit - update existing data
   const handleSubmit = async () => {
-    // Validate nomorLhp
+    // Validate
     if (!nomorLhp || rowsByLhp.length === 0) return;
-
-    // Validate temuan selected
     if (selectedTemuanId === null) return;
-
-    // Validate rekomendasi selected
     if (selectedRekId === null) return;
 
     try {
       const temuanChanged = temuanInputValue && selectedTemuan && temuanInputValue !== selectedTemuan.deskripsi;
       const rekomendasiChanged = rekInputValue && selectedRekomendasi && rekInputValue !== selectedRekomendasi.isi;
       
-      // DEBUG LOG
+      // Normalize dates for comparison
+      const currentBatasWaktu = selectedRekomendasi?.batasWaktu 
+        ? new Date(selectedRekomendasi.batasWaktu).toISOString().split('T')[0] 
+        : null;
+      const newBatasWaktu = batasWaktu || null;
+      const batasWaktuChanged = newBatasWaktu && newBatasWaktu !== currentBatasWaktu;
+      
       console.log("=== UPDATE DEBUG ===");
-      console.log("temuanInputValue:", temuanInputValue);
-      console.log("selectedTemuan:", selectedTemuan);
       console.log("temuanChanged:", temuanChanged);
-      console.log("isTemuanShared:", isTemuanShared);
       console.log("rekomendasiChanged:", rekomendasiChanged);
-      console.log("selectedRekId:", selectedRekId);
+      console.log("batasWaktuChanged:", batasWaktuChanged);
       
       // Handle temuan update
       if (temuanChanged) {
-        console.log("Temuan changed, isTemuanShared:", isTemuanShared);
         if (isTemuanShared) {
-          // Temuan is shared by other rekomendasi, create new temuan
-          // Then update this rekomendasi to link to the new temuan
-          console.log("Creating new temuan for nomorLhp:", nomorLhp);
+          // Temuan is shared, create new temuan
           const newTemuan = await laporanService.addTemuanToLaporan(nomorLhp, {
             deskripsi: temuanInputValue,
           });
-          console.log("New temuan created:", newTemuan);
           
           // Update rekomendasi to link to new temuan
-          console.log("Updating rekomendasi to link to new temuan, rekId:", selectedRekId, "temuanId:", newTemuan.id);
-          const rekUpdateResult = await rekomendasiService.updateRekomendasi(selectedRekId, {
+          await rekomendasiService.updateRekomendasi(selectedRekId, {
             isi: rekomendasiChanged ? rekInputValue : selectedRekomendasi.isi,
             temuanId: newTemuan.id,
+            batasWaktu: batasWaktu || null,
           });
-          console.log("Rekomendasi update result:", rekUpdateResult);
         } else {
           // Temuan is not shared, safe to update directly
-          console.log("Updating temuan directly, temuanId:", selectedTemuan.temuanId);
-          const updateResult = await laporanService.updateTemuanById(selectedTemuan.temuanId, {
+          await laporanService.updateTemuanById(selectedTemuan.temuanId, {
             deskripsi: temuanInputValue,
           });
-          console.log("Temuan update result:", updateResult);
           
           // Also update rekomendasi if changed
-          if (rekomendasiChanged) {
+          if (rekomendasiChanged || batasWaktuChanged) {
             await rekomendasiService.updateRekomendasi(selectedRekId, {
-              isi: rekInputValue,
+              isi: rekomendasiChanged ? rekInputValue : selectedRekomendasi.isi,
+              batasWaktu: batasWaktu || null,
             });
           }
         }
-      } else if (rekomendasiChanged) {
-        // Only rekomendasi changed, update directly
-        await rekomendasiService.updateRekomendasi(selectedRekId, {
-          isi: rekInputValue,
-        });
+      } else if (rekomendasiChanged || batasWaktuChanged) {
+        // Only rekomendasi or batasWaktu changed
+        const updateData = {};
+        if (rekomendasiChanged) updateData.isi = rekInputValue;
+        if (batasWaktuChanged) updateData.batasWaktu = batasWaktu;
+        
+        await rekomendasiService.updateRekomendasi(selectedRekId, updateData);
       }
 
-      // Update batas waktu
-      if (
-        batasWaktu &&
-        selectedRekomendasi &&
-        batasWaktu !== selectedRekomendasi.batasWaktu
-      ) {
-        onUpdateRowDate?.(selectedRekomendasi.rowId, batasWaktu);
-      }
-
-      // Refresh data from backend
+      // Refresh data
       if (onRefresh) {
         await onRefresh();
       }
@@ -257,15 +293,96 @@ export default function UpdateDataModal({
     }
   };
 
-  const isFormValid = nomorLhp && selectedTemuanId !== null && selectedRekId !== null;
+  // Handle submit for ADD mode
+  const handleSubmitAdd = async () => {
+    if (!addNomorLhp) {
+      alert("Pilih Nomor LHP terlebih dahulu");
+      return;
+    }
+
+    // Validate at least one temuan with rekomendasi
+    const hasValidData = addTemuan.some(t => 
+      t.temuan.trim() && t.rekomendasi.some(r => r.rekomendasi.trim())
+    );
+
+    if (!hasValidData) {
+      alert("Minimal harus ada 1 temuan dan 1 rekomendasi");
+      return;
+    }
+
+    try {
+      // Process each temuan
+      for (const temuanItem of addTemuan) {
+        if (!temuanItem.temuan.trim()) continue;
+
+        // Create temuan first
+        const newTemuan = await laporanService.addTemuanToLaporan(addNomorLhp, {
+          deskripsi: temuanItem.temuan.trim(),
+        });
+
+        // Create rekomendasi for this temuan
+        for (const rekItem of temuanItem.rekomendasi) {
+          if (!rekItem.rekomendasi.trim()) continue;
+
+          await rekomendasiService.addRekomendasi(addNomorLhp, {
+            isi: rekItem.rekomendasi.trim(),
+            temuanId: newTemuan.id,
+            batasWaktu: rekItem.batasWaktu || null,
+          });
+        }
+      }
+
+      // Refresh data
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Error adding data:", error);
+      alert("Gagal menambah data: " + (error.message || "Unknown error"));
+    }
+  };
+
+  const isFormValid = mode === "update" 
+    ? (nomorLhp && selectedTemuanId !== null && selectedRekId !== null)
+    : (addNomorLhp && addTemuan.some(t => t.temuan.trim()));
 
   return (
-    <Modal onClose={onClose} show={isOpen} size="lg">
+    <Modal onClose={onClose} show={isOpen} size="xl">
       <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-        <strong>Update Data LHP</strong>
+        <strong>Kelola Data LHP</strong>
       </Modal.Header>
 
       <Modal.Body>
+        {/* Mode Tabs */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setMode("update")}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
+                mode === "update"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Update Data Existing
+            </button>
+            <button
+              onClick={() => setMode("add")}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
+                mode === "add"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              ➕ Tambah Temuan & Rekomendasi Baru
+            </button>
+          </nav>
+        </div>
+
+        {/* UPDATE MODE */}
+        {mode === "update" && (
         <div className="space-y-6">
           {/* Step 1: Select Nomor LHP */}
           <div className="sm:col-span-2">
@@ -404,11 +521,167 @@ export default function UpdateDataModal({
             </div>
           )}
         </div>
+        )}
+
+        {/* ADD MODE */}
+        {mode === "add" && (
+        <div className="space-y-6">
+          {/* Select Nomor LHP */}
+          <div>
+            <Label htmlFor="add-nomor">Pilih Nomor LHP</Label>
+            <div className="mt-1">
+              <select
+                id="add-nomor"
+                value={addNomorLhp}
+                onChange={(e) => setAddNomorLhp(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm text-gray-900
+                           dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">-- Pilih Nomor LHP --</option>
+                {nomorOptions.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Dynamic Temuan & Rekomendasi */}
+          {addNomorLhp && (
+            <div className="space-y-6">
+              {addTemuan.map((temuanItem, temuanIdx) => (
+                <div
+                  key={temuanIdx}
+                  className="rounded-lg border-2 border-gray-300 p-4 dark:border-gray-600"
+                >
+                  {/* Temuan Header */}
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Temuan #{temuanIdx + 1}
+                    </h3>
+                    {addTemuan.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTemuan(temuanIdx)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        ✕ Hapus Temuan
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Temuan Input */}
+                  <div className="mb-4">
+                    <Label htmlFor={`add-temuan-${temuanIdx}`}>
+                      Deskripsi Temuan <span className="text-red-500">*</span>
+                    </Label>
+                    <textarea
+                      id={`add-temuan-${temuanIdx}`}
+                      rows={3}
+                      value={temuanItem.temuan}
+                      onChange={(e) => handleTemuanChange(temuanIdx, e.target.value)}
+                      placeholder="Masukkan deskripsi temuan..."
+                      className="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900
+                                 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+
+                  {/* Rekomendasi List */}
+                  <div className="space-y-3 ml-4 border-l-2 border-blue-300 pl-4">
+                    <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Rekomendasi untuk Temuan #{temuanIdx + 1}
+                    </Label>
+                    
+                    {temuanItem.rekomendasi.map((rekItem, rekIdx) => (
+                      <div
+                        key={rekIdx}
+                        className="rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Rekomendasi {temuanIdx + 1}.{rekIdx + 1}
+                          </span>
+                          {temuanItem.rekomendasi.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRekomendasi(temuanIdx, rekIdx)}
+                              className="text-xs text-red-600 hover:text-red-800"
+                            >
+                              ✕ Hapus
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <Label htmlFor={`add-rek-${temuanIdx}-${rekIdx}`} className="text-xs">
+                              Isi Rekomendasi <span className="text-red-500">*</span>
+                            </Label>
+                            <textarea
+                              id={`add-rek-${temuanIdx}-${rekIdx}`}
+                              rows={2}
+                              value={rekItem.rekomendasi}
+                              onChange={(e) =>
+                                handleRekomendasiChange(temuanIdx, rekIdx, "rekomendasi", e.target.value)
+                              }
+                              placeholder="Masukkan rekomendasi..."
+                              className="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm
+                                         dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor={`add-batas-${temuanIdx}-${rekIdx}`} className="text-xs">
+                              Batas Waktu
+                            </Label>
+                            <TextInput
+                              id={`add-batas-${temuanIdx}-${rekIdx}`}
+                              type="date"
+                              value={rekItem.batasWaktu}
+                              onChange={(e) =>
+                                handleRekomendasiChange(temuanIdx, rekIdx, "batasWaktu", e.target.value)
+                              }
+                              sizing="sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Rekomendasi Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleAddRekomendasi(temuanIdx)}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                    >
+                      ➕ Tambah Rekomendasi
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Temuan Button */}
+              <button
+                type="button"
+                onClick={handleAddTemuan}
+                className="w-full rounded-lg border-2 border-dashed border-gray-300 p-4 text-sm font-medium text-gray-600 hover:border-gray-400 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400"
+              >
+                ➕ Tambah Temuan Baru
+              </button>
+            </div>
+          )}
+        </div>
+        )}
       </Modal.Body>
 
       <Modal.Footer>
-        <Button color="primary" onClick={handleSubmit} disabled={!isFormValid}>
-          Simpan Update
+        <Button 
+          color="primary" 
+          onClick={mode === "update" ? handleSubmit : handleSubmitAdd} 
+          disabled={!isFormValid}
+        >
+          {mode === "update" ? "Simpan Update" : "Simpan Data Baru"}
         </Button>
         <Button color="gray" onClick={onClose}>
           Batal

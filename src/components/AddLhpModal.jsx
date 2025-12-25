@@ -123,12 +123,12 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
   };
 
   return (
-    <Modal onClose={onClose} show={isOpen} size="4xl">
-      <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-        <strong>Input LHP</strong>
+    <Modal onClose={onClose} show={isOpen} size="3xl">
+      <Modal.Header className="border-b-2 border-gray-300 !p-4 dark:border-gray-600">
+        <strong className="text-lg">📝 Input LHP</strong>
       </Modal.Header>
 
-      <Modal.Body>
+      <Modal.Body className="max-h-[calc(100vh-200px)] overflow-y-auto">
         {/* Header LHP */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -186,11 +186,11 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
         </div>
 
         {/* Temuan list */}
-        <div className="mt-6 space-y-6">
+        <div className="mt-4 space-y-4">
           {temuanList.map((t, idx) => (
             <div
               key={t.id}
-              className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+              className="rounded-lg border border-gray-300 p-4 shadow-md dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -213,24 +213,24 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
                 <div className="mt-1">
                   <textarea
                     id={`temuan-${t.id}`}
-                    rows={4}
+                    rows={3}
                     value={t.temuan}
                     onChange={(e) => updateTemuanText(t.id, e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900
-                               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                    className="block w-full rounded-lg border-2 border-gray-300 bg-white p-2.5 text-sm text-gray-900
+                               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500"
                     placeholder="Tulis detail temuan..."
                   />
                 </div>
               </div>
 
               {/* Rekomendasi */}
-              <div className="mt-4 space-y-4">
+              <div className="mt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                     Rekomendasi
                   </h4>
                   <Button
-                    color="gray"
+                    color="blue"
                     size="xs"
                     onClick={() => addRekomendasi(t.id)}
                   >
@@ -241,7 +241,7 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
                 {t.rekomendasiList.map((r, rIdx) => (
                   <div
                     key={r.id}
-                    className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                    className="rounded-lg border-2 border-blue-200 p-3 bg-white dark:border-blue-600 dark:bg-gray-800 shadow-sm"
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -263,13 +263,13 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
                       <Label htmlFor={`rekom-${t.id}-${r.id}`}>Isi Rekomendasi</Label>
                       <textarea
                         id={`rekom-${t.id}-${r.id}`}
-                        rows={3}
+                        rows={2}
                         value={r.rekomendasi}
                         onChange={(e) =>
                           updateRekomField(t.id, r.id, "rekomendasi", e.target.value)
                         }
-                        className="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900
-                                   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        className="mt-1 block w-full rounded-lg border-2 border-gray-300 bg-white p-2.5 text-sm text-gray-900
+                                   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500"
                         placeholder="Tulis rekomendasi..."
                       />
                     </div>
@@ -294,8 +294,8 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
           ))}
         </div>
 
-        <div className="mt-6">
-          <Button color="gray" onClick={addTemuan}>
+        <div className="mt-4">
+          <Button color="blue" size="sm" onClick={addTemuan}>
             + Tambah Temuan
           </Button>
         </div>
@@ -305,9 +305,9 @@ export default function AddLhpModal({ isOpen, onClose, onSubmit }) {
         </p>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="border-t-2 border-gray-300 dark:border-gray-600">
         <Button color="primary" onClick={handleSubmit}>
-          Simpan LHP
+          💾 Simpan LHP
         </Button>
         <Button color="gray" onClick={onClose}>
           Batal

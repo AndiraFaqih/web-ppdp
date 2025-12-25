@@ -168,12 +168,16 @@ const transformLaporanToRows = (laporanList) => {
         const rekStatus = rek.status || "BELUM TINDAK LANJUT";
         const statusLabel = mapStatusToFrontend(rekStatus);
         
+        // Use rekomendasi's batasWaktu if available, else laporan's batasWaktu
+        const batasWaktuDate = rek.batasWaktu || laporan.batasWaktu;
+        const batasWaktuStr = batasWaktuDate ? new Date(batasWaktuDate).toISOString().split('T')[0] : "";
+        
         rows.push({
           id: uid(`${rows.length}-${idx}`),
           nomorLhp: nomorLHP,
           temuan: cleanTemuanDeskripsi,
           rekomendasi: cleanRekIsi,
-          batasWaktu: laporan.batasWaktu ? new Date(laporan.batasWaktu).toISOString().split('T')[0] : "",
+          batasWaktu: batasWaktuStr,
           statusLabel,
           statusDot: dotByStatus(statusLabel),
           picNama: pic,
@@ -483,15 +487,16 @@ export default function AttendancePage() {
     }
 
     try {
-      // Transform payload to backend format - each temuan contains its rekomendasi
+      // Transform payload to backend format - each temuan contains its rekomendasi with batasWaktu
       const temuan = (payload.temuan || []).map((t) => ({
         deskripsi: t.temuan || "",
         rekomendasi: (t.rekomendasi || []).map((r) => ({
           isi: r.rekomendasi || "",
+          batasWaktu: r.batasWaktu || "",  // ← INCLUDE batasWaktu per rekomendasi
         })),
       }));
 
-      // Use the first batasWaktu from rekomendasi (backend expects single batasWaktu on laporan)
+      // For laporan-level batasWaktu, use the first one or leave empty
       const firstBatasWaktu = payload.temuan?.[0]?.rekomendasi?.[0]?.batasWaktu || "";
 
       const laporanData = {
@@ -522,14 +527,8 @@ export default function AttendancePage() {
       // Add new rekomendasi
       await rekomendasiService.addRekomendasi(newRow.nomorLhp, {
         isi: newRow.rekomendasi,
+        batasWaktu: newRow.batasWaktu || null,  // ← SEND batasWaktu to rekomendasi
       });
-
-      // Update batasWaktu if needed (this updates the laporan's batasWaktu)
-      if (newRow.batasWaktu) {
-        await laporanService.updateLaporan(newRow.nomorLhp, {
-          batasWaktu: newRow.batasWaktu,
-        });
-      }
 
       // Refresh data
       await fetchLaporan();
@@ -546,9 +545,8 @@ export default function AttendancePage() {
       const row = rowsData.find((r) => r.id === rowId);
       if (!row || !row.rekomendasiId) return;
 
-      // Update rekomendasi date by updating the laporan's batasWaktu
-      // Note: Backend stores batasWaktu on laporan level, not rekomendasi level
-      await laporanService.updateLaporan(row.nomorLhp, {
+      // Update rekomendasi's batasWaktu directly
+      await rekomendasiService.updateRekomendasi(row.rekomendasiId, {
         batasWaktu: newDate,
       });
 
@@ -768,23 +766,33 @@ export default function AttendancePage() {
         summaryRows={filteredRows}
       />
 
-      <div className="flex flex-col">
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden shadow">
-              <LhpTable
-                rows={filteredRows}
-                buktiByLhp={buktiByRekom}
-                formatTanggal={formatTanggal}
-                onOpenInputBukti={openInputBukti}
-                onOpenViewBukti={openViewBukti}
-              />
-            </div>
+      {/* ===== SECTION 3: TABEL DATA ===== */}
+      <div className="p-4 sm:p-6 bg-gray-100 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-300 dark:border-gray-600">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              📑 Data Laporan Hasil Pemeriksaan
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Menampilkan {filteredRows.length} dari {rowsData.length} total rekomendasi
+            </p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <LhpTable
+              rows={filteredRows}
+              buktiByLhp={buktiByRekom}
+              formatTanggal={formatTanggal}
+              onOpenInputBukti={openInputBukti}
+              onOpenViewBukti={openViewBukti}
+            />
+          </div>
+          
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+            <Pagination />
           </div>
         </div>
       </div>
-
-      <Pagination />
 
       <InputBuktiModal
         isOpen={isInputBuktiOpen}

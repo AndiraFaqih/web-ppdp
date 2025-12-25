@@ -8,8 +8,8 @@ export default function LhpTable({
   onOpenViewBukti,
 }) {
   return (
-    <Table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-      <Table.Head className="bg-gray-100 dark:bg-gray-700">
+    <Table className="min-w-full divide-y-2 divide-gray-300 dark:divide-gray-600">
+      <Table.Head className="bg-gray-100 dark:bg-gray-700 border-b-4 border-gray-400 dark:border-gray-500">
         <Table.HeadCell>NOMOR LHP</Table.HeadCell>
         <Table.HeadCell>TEMUAN</Table.HeadCell>
         <Table.HeadCell>REKOMENDASI</Table.HeadCell>
@@ -19,7 +19,7 @@ export default function LhpTable({
         <Table.HeadCell>PERUSAHAAN</Table.HeadCell>
       </Table.Head>
 
-      <Table.Body className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+      <Table.Body className="divide-y-2 divide-gray-300 bg-white dark:divide-gray-600 dark:bg-gray-800">
         {rows.length === 0 ? (
           <Table.Row>
             <Table.Cell

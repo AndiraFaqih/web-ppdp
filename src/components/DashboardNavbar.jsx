@@ -1,4 +1,4 @@
-import { Navbar, Avatar } from "flowbite-react";
+import { Navbar, Avatar, Badge } from "flowbite-react";
 import { useRef, useState, useEffect } from "react";
 import DropdownMenu from "./DropdownMenu";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -99,15 +99,16 @@ const DashboardNavbar = () => {
   const notifCount = notifList?.length || 0;
 
   return (
-    <Navbar fluid>
-      <div className="w-full p-3 lg:px-5 lg:pl-3">
+    <Navbar fluid className="bg-white/80 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-700">
+      <div className="w-full p-3 lg:px-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <Navbar.Brand>
-              <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">
+              <span className="self-center whitespace-nowrap text-xl font-semibold text-gray-900 dark:text-white">
                 Pemantauan Tindak Lanjut Rekomendasi LHP
               </span>
             </Navbar.Brand>
+            <Badge color="blue">Dashboard</Badge>
           </div>
 
           <div className="relative flex items-center gap-3" ref={dropdownRef}>
@@ -120,7 +121,7 @@ const DashboardNavbar = () => {
               onClickItem={handleClickNotifItem}
             />
 
-            <Avatar rounded className="cursor-pointer" onClick={handleAvatarClick} />
+            <Avatar rounded className="cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700" onClick={handleAvatarClick} />
 
             {isDropdownOpen && (
               <DropdownMenu

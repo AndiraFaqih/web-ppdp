@@ -339,7 +339,7 @@ export const laporanService = {
   buktiSecondApprovalByNomorLHP,
   updateTemuanById: async (temuanId, updateData) => {
     try {
-      const response = await fetch(`${baseUrl()}/temuan/${temuanId}`, {
+      const response = await fetch(`${baseUrl()}/rekomendasi/temuan/${temuanId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

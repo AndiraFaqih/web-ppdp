@@ -3,7 +3,7 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 
 export default function UpdateDataButton({ onClick }) {
   return (
-    <Button color="gray" onClick={onClick}>
+    <Button color="dark" onClick={onClick}>
       <div className="flex items-center gap-x-3">
         <HiOutlinePencilAlt className="text-xl" />
         <span>Update Data</span>
