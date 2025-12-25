@@ -404,7 +404,7 @@ export default function AttendancePage() {
         if (s.startsWith("sesuai")) return null;
 
         const d = diffDays(due, today);
-        if (d < 0 || d > 3) return null; // ✅ H-3
+        if (d < 0 || d > 7) return null; // ✅ H-7
 
         return {
           key: r.id,
