@@ -108,7 +108,7 @@ const DashboardNavbar = () => {
                 Pemantauan Tindak Lanjut Rekomendasi LHP
               </span>
             </Navbar.Brand>
-            <Badge color="blue">Dashboard</Badge>
+            {/* <Badge color="blue">Dashboard</Badge> */}
           </div>
 
           <div className="relative flex items-center gap-3" ref={dropdownRef}>

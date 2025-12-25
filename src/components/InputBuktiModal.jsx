@@ -109,7 +109,7 @@ export default function InputBuktiModal({
   return (
     <Modal onClose={onClose} show={isOpen} size="3xl">
       <Modal.Header className="border-b-2 border-gray-300 !p-4 dark:border-gray-600">
-        <strong className="text-lg">📁 Input Bukti</strong>
+        <strong className="text-lg"> Input Bukti</strong>
       </Modal.Header>
 
       <Modal.Body className="max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -203,7 +203,7 @@ export default function InputBuktiModal({
             {/* ✅ pilihan status (disabled sebelum bukti siap) */}
             <div className="rounded-lg border-2 border-blue-300 p-4 dark:border-blue-600 bg-blue-50 dark:bg-gray-800 shadow-md">
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                📊 Status Tindak Lanjut
+                 Status Tindak Lanjut
               </p>
               <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                 * Tombol aktif setelah tanggal upload & file bukti terisi (atau sudah ada bukti sebelumnya).
@@ -298,7 +298,7 @@ export default function InputBuktiModal({
 
       <Modal.Footer className="border-t-2 border-gray-300 dark:border-gray-600">
         <Button color="primary" onClick={handleSubmit} disabled={!row}>
-          💾 Simpan Bukti
+           Simpan Bukti
         </Button>
         <Button color="gray" onClick={onClose}>
           Batal

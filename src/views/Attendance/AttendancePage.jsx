@@ -771,7 +771,7 @@ export default function AttendancePage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-300 dark:border-gray-600">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              📑 Data Laporan Hasil Pemeriksaan
+               Data Laporan Hasil Pemeriksaan
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Menampilkan {filteredRows.length} dari {rowsData.length} total rekomendasi

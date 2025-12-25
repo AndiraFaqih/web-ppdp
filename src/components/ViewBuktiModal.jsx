@@ -43,7 +43,7 @@ export default function ViewBuktiModal({
   return (
     <Modal onClose={onClose} show={isOpen} size="5xl">
       <Modal.Header className="border-b-2 border-gray-300 !p-4 dark:border-gray-600">
-        <strong className="text-lg">📋 Riwayat Bukti</strong>
+        <strong className="text-lg"> Riwayat Bukti</strong>
       </Modal.Header>
 
       <Modal.Body className="max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -55,10 +55,10 @@ export default function ViewBuktiModal({
           <div className="space-y-4">
             <div className="rounded-lg border-2 border-blue-300 p-4 text-sm text-gray-700 shadow-md dark:border-blue-600 dark:text-gray-200 bg-blue-50 dark:bg-gray-800">
               <div>
-                <span className="font-semibold">📄 Nomor LHP:</span> {row.nomorLhp}
+                <span className="font-semibold"> Nomor LHP:</span> {row.nomorLhp}
               </div>
               <div className="mt-1">
-                <span className="font-semibold">⏰ Batas Waktu:</span>{" "}
+                <span className="font-semibold"> Batas Waktu:</span>{" "}
                 {row.batasWaktu || "-"}
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function ViewBuktiModal({
                 {/* LIST HISTORY */}
                 <div className="rounded-lg border-2 border-gray-300 shadow-lg dark:border-gray-600">
                   <div className="border-b-2 border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
-                    📂 Daftar Upload ({sorted.length})
+                     Daftar Upload ({sorted.length})
                   </div>
 
                   <div className="max-h-[420px] overflow-auto">
@@ -122,7 +122,7 @@ export default function ViewBuktiModal({
                       size="sm"
                       onClick={() => onDeleteAll?.(nomorLhp)}
                     >
-                      🗑️ Hapus Semua
+                       Hapus Semua
                     </Button>
                     <p className="text-xs text-gray-600 dark:text-gray-300">
                       * Hapus semua bukti untuk LHP ini
@@ -135,7 +135,7 @@ export default function ViewBuktiModal({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                        📝 Detail Bukti
+                         Detail Bukti
                       </div>
                       <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                         Tanggal Upload:{" "}
@@ -235,7 +235,7 @@ export default function ViewBuktiModal({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                            ✅ Approval Berjenjang
+                             Approval Berjenjang
                           </div>
 
                           <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">

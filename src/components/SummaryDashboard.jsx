@@ -149,7 +149,7 @@ export default function SummaryDashboard({ rows = [] }) {
         <div className="space-y-4 lg:col-span-3">
           <div className="rounded-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-white p-5 shadow-md hover:shadow-lg transition-shadow dark:border-blue-600 dark:from-gray-800 dark:to-gray-800">
             <div className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-              📋 Total Rekomendasi
+               Total Rekomendasi
             </div>
             <div className="mt-2 text-3xl font-bold text-blue-900 dark:text-white">
               {stats.total}
@@ -190,7 +190,7 @@ export default function SummaryDashboard({ rows = [] }) {
         <div className="lg:col-span-6">
           <div className="h-full rounded-lg border-2 border-blue-300 bg-white p-6 shadow-lg dark:border-blue-600 dark:bg-gray-800">
             <div className="text-base font-bold text-blue-900 dark:text-blue-300 mb-3">
-              📊 Rekomendasi berdasarkan Status
+               Rekomendasi berdasarkan Status
             </div>
             <div className="mt-4 h-[280px] flex items-center justify-center">
               <canvas ref={canvasRef} />

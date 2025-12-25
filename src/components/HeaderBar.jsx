@@ -76,7 +76,7 @@ export default function HeaderBar({
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-300 dark:border-gray-600">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              🔍 Filter & Pencarian
+               Filter & Pencarian
             </h3>
             
             <div className="sm:flex sm:items-center sm:gap-3 sm:justify-between">
